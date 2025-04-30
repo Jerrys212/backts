@@ -18,7 +18,7 @@ export const getLoans = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        const loans = await Loan.find();
+        const loans = await Loan.find().populate("miembro", "nombre apellidoPaterno apellidoMaterno email");
         return res.status(200).json({
             status: 200,
             message: "Préstamos obtenidos correctamente",
@@ -47,9 +47,9 @@ export const requestLoan = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        const { cantidad, semanas, usuarioId } = req.body;
+        const { cantidad, semanas, miembro } = req.body;
 
-        const usuario = await User.findById(usuarioId);
+        const usuario = await User.findById(miembro);
         if (!usuario) {
             return res.status(404).json({
                 status: 404,
@@ -79,7 +79,7 @@ export const requestLoan = async (req: AuthRequest, res: Response) => {
         }
 
         const grupos = await Group.find({
-            miembros: new mongoose.Types.ObjectId(usuarioId),
+            miembros: new mongoose.Types.ObjectId(miembro),
         });
 
         if (grupos.length === 0) {
@@ -98,7 +98,7 @@ export const requestLoan = async (req: AuthRequest, res: Response) => {
         for (const grupo of grupos) {
             const aportaciones = await Contribution.find({
                 grupo: grupo._id,
-                miembro: usuarioId,
+                miembro,
             });
 
             const totalAportaciones = aportaciones.length;
@@ -133,7 +133,7 @@ export const requestLoan = async (req: AuthRequest, res: Response) => {
 
         const loan = await Loan.create([
             {
-                usuario: usuarioId,
+                miembro,
                 cantidad,
                 semanas,
                 cantidadSemanal,
@@ -162,7 +162,7 @@ export const requestLoan = async (req: AuthRequest, res: Response) => {
 
 export const updateLoanStatus = async (req: AuthRequest, res: Response) => {
     try {
-        if (!req.user?.id || req.user.role !== "admin") {
+        if (!req.user?.id) {
             return res.status(403).json({
                 status: 403,
                 message: "No tienes permisos para realizar esta acción",
@@ -202,6 +202,21 @@ export const updateLoanStatus = async (req: AuthRequest, res: Response) => {
         }
 
         loan.estado = estado;
+
+        // Si el préstamo es aprobado, inicializamos el arreglo de pagos
+        if (estado === "aprobado") {
+            const pagos = [];
+            for (let i = 1; i <= loan.semanas; i++) {
+                pagos.push({
+                    semana: i,
+                    pagado: false,
+                    fechaPago: null,
+                    cantidad: loan.cantidadSemanal,
+                });
+            }
+            loan.pagos = pagos;
+        }
+
         await loan.save();
 
         return res.status(200).json({
@@ -215,6 +230,83 @@ export const updateLoanStatus = async (req: AuthRequest, res: Response) => {
         return res.status(500).json({
             status: 500,
             message: "Error al actualizar el estado del préstamo",
+            data: null,
+            error: error instanceof Error ? error.message : "Error desconocido",
+        });
+    }
+};
+
+export const getLoanById = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user?.id) {
+            return res.status(401).json({
+                status: 401,
+                message: "No autorizado",
+                data: null,
+                error: "Unauthorized",
+            });
+        }
+
+        const loanId = req.params.id;
+
+        if (!mongoose.Types.ObjectId.isValid(loanId)) {
+            return res.status(400).json({
+                status: 400,
+                message: "ID de préstamo inválido",
+                data: null,
+                error: "ID inválido",
+            });
+        }
+
+        const loan = await Loan.findById(loanId).populate("miembro", "nombre apellidoPaterno apellidoMaterno email").lean();
+
+        if (!loan) {
+            return res.status(404).json({
+                status: 404,
+                message: "Préstamo no encontrado",
+                data: null,
+                error: "Préstamo no existe",
+            });
+        }
+
+        // Calculamos información adicional para el detalle
+        let pagadoHastaAhora = 0;
+        let semanasRestantes = 0;
+        let montoRestante = 0;
+
+        if (loan.pagos && loan.pagos.length > 0) {
+            // Sumamos los pagos realizados
+            pagadoHastaAhora = loan.pagos.filter((pago) => pago.pagado).reduce((total, pago) => total + (pago.cantidad || 0), 0);
+
+            // Contamos semanas restantes
+            semanasRestantes = loan.pagos.filter((pago) => !pago.pagado).length;
+
+            // Calculamos monto restante
+            montoRestante = loan.totalPagar - pagadoHastaAhora;
+        }
+
+        // Agregamos esta información al objeto de préstamo
+        const loanWithDetails = {
+            ...loan,
+            resumen: {
+                pagadoHastaAhora,
+                semanasRestantes,
+                montoRestante,
+                progresoPago: Math.round((pagadoHastaAhora / loan.totalPagar) * 100),
+            },
+        };
+
+        return res.status(200).json({
+            status: 200,
+            message: "Detalles del préstamo obtenidos correctamente",
+            data: loanWithDetails,
+            error: null,
+        });
+    } catch (error) {
+        console.error("Error al obtener detalles del préstamo:", error);
+        return res.status(500).json({
+            status: 500,
+            message: "Error al obtener los detalles del préstamo",
             data: null,
             error: error instanceof Error ? error.message : "Error desconocido",
         });
@@ -245,6 +337,99 @@ export const getUserLoans = async (req: AuthRequest, res: Response) => {
         return res.status(500).json({
             status: 500,
             message: "Error al obtener los préstamos",
+            data: null,
+            error: error instanceof Error ? error.message : "Error desconocido",
+        });
+    }
+};
+
+export const registerLoanPayment = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user?.id) {
+            return res.status(403).json({
+                status: 403,
+                message: "No tienes permisos para realizar esta acción",
+                data: null,
+                error: "No autorizado",
+            });
+        }
+
+        const { semana } = req.body;
+        const loanId = req.params.id;
+
+        const loan = await Loan.findById(loanId);
+        if (!loan) {
+            return res.status(404).json({
+                status: 404,
+                message: "Préstamo no encontrado",
+                data: null,
+                error: "ID inválido",
+            });
+        }
+
+        if (loan.estado !== "aprobado") {
+            return res.status(400).json({
+                status: 400,
+                message: `No se puede registrar el pago. El préstamo está ${loan.estado}`,
+                data: null,
+                error: "Estado inválido",
+            });
+        }
+
+        // Verificar si la semana es válida
+        if (!semana || semana < 1 || semana > loan.semanas) {
+            return res.status(400).json({
+                status: 400,
+                message: `Número de semana inválido. Debe estar entre 1 y ${loan.semanas}`,
+                data: null,
+                error: "Semana inválida",
+            });
+        }
+
+        // Buscar la semana en el arreglo de pagos
+        const pagoIndex = loan.pagos.findIndex((pago) => pago.semana === semana);
+        if (pagoIndex === -1) {
+            return res.status(400).json({
+                status: 400,
+                message: "Semana de pago no encontrada",
+                data: null,
+                error: "Semana no encontrada",
+            });
+        }
+
+        // Verificar si ya está pagado
+        if (loan.pagos[pagoIndex].pagado) {
+            return res.status(400).json({
+                status: 400,
+                message: "Esta semana ya está pagada",
+                data: null,
+                error: "Pago duplicado",
+            });
+        }
+
+        // Registrar el pago
+        loan.pagos[pagoIndex].pagado = true;
+        loan.pagos[pagoIndex].fechaPago = new Date();
+
+        // Verificar si todos los pagos están completados
+        const todosPagados = loan.pagos.every((pago) => pago.pagado);
+        if (todosPagados) {
+            loan.estado = "pagado";
+        }
+
+        await loan.save();
+
+        return res.status(200).json({
+            status: 200,
+            message: `Pago de semana ${semana} registrado correctamente${todosPagados ? ". Préstamo completamente pagado" : ""}`,
+            data: loan,
+            error: null,
+        });
+    } catch (error) {
+        console.error("Error al registrar pago de préstamo:", error);
+        return res.status(500).json({
+            status: 500,
+            message: "Error al registrar el pago",
             data: null,
             error: error instanceof Error ? error.message : "Error desconocido",
         });

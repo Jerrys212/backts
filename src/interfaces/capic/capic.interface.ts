@@ -37,12 +37,21 @@ export interface IContribution extends Document {
     updatedAt: Date;
 }
 
+interface IPago {
+    semana: number;
+    pagado: boolean;
+    fechaPago?: Date | null;
+    cantidad?: number;
+}
+
 export interface ILoan extends Document {
-    usuario: Types.ObjectId;
+    miembro: Types.ObjectId;
     cantidad: number;
     semanas: number;
     cantidadSemanal: number;
     interes: number;
+    totalPagar: number;
+    pagos: IPago[];
     estado: "pendiente" | "aprobado" | "rechazado" | "pagado";
     createdAt: Date;
     updatedAt: Date;

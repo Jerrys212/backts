@@ -6,14 +6,17 @@ import capicUserRouter from "./routes/capic/userRoutes";
 import capicGroupsRouter from "./routes/capic/groupRoutes";
 import capicContributionsRoutes from "./routes/capic/contributionroutes";
 import capicLoanRoutes from "./routes/capic/loanRoutes";
+import mainRouter from "./routes/main/mainRoutes";
 
 const app: Express = express();
 
 // Middleware
 app.use(cors());
 app.use(helmet());
+app.use("/uploads", express.static("src/uploads"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("/main", mainRouter);
 
 // Montar las rutas de la API capic en /capic/api
 app.use("/capic/api/auth", capicAuthRoutes);
