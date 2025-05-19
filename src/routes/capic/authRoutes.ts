@@ -1,5 +1,5 @@
 import express from "express";
-import { getUserProfile, login, register } from "../../controllers/capic/Auth.Controller";
+import { getUserProfile, login, register, updatePassword } from "../../controllers/capic/Auth.Controller";
 import { protect } from "../../middlewares/capic/auth";
 import { validate } from "../../utils/capic/validation";
 import { validateLogin, validateUserRegistration } from "../../utils/capic/validators";
@@ -12,5 +12,6 @@ router.post("/login", validate(validateLogin), login);
 
 // Rutas protegidas
 router.get("/profile", protect, getUserProfile);
+router.post("/update-password", protect, updatePassword);
 
 export default router;

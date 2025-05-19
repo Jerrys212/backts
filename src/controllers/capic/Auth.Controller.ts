@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import User from "../../models/capic/User";
 import { generateToken } from "../../utils/capic/helpers";
 import { AuthRequest } from "../../interfaces/capic/capic.interface";
+import bcrypt from "bcryptjs";
 
 export const register = async (req: Request, res: Response) => {
     try {
@@ -81,6 +82,8 @@ export const login = async (req: Request, res: Response) => {
                 curp: user.curp,
                 email: user.email,
                 role: user.role,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt,
                 token,
             },
             error: null,
@@ -98,16 +101,7 @@ export const login = async (req: Request, res: Response) => {
 
 export const getUserProfile = async (req: AuthRequest, res: Response) => {
     try {
-        if (!req.user?.id) {
-            return res.status(401).json({
-                status: 401,
-                message: "No autorizado",
-                data: null,
-                error: null,
-            });
-        }
-
-        const user = await User.findById(req.user.id).select("-password");
+        const user = await User.findById(req.user?.id).select("-password");
 
         if (!user) {
             return res.status(404).json({
@@ -129,6 +123,68 @@ export const getUserProfile = async (req: AuthRequest, res: Response) => {
         return res.status(500).json({
             status: 500,
             message: "Error al obtener el perfil del usuario",
+            data: null,
+            error: error instanceof Error ? error.message : "Error desconocido",
+        });
+    }
+};
+
+export const updatePassword = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        const { newPassword } = req.body;
+
+        // Validar que se proporcione la nueva contraseña
+        if (!newPassword) {
+            return res.status(400).json({
+                status: 400,
+                message: "Datos incompletos",
+                data: null,
+                error: "Se requiere la nueva contraseña",
+            });
+        }
+
+        // Validar longitud mínima de la nueva contraseña
+        if (newPassword.length < 8) {
+            return res.status(400).json({
+                status: 400,
+                message: "Contraseña inválida",
+                data: null,
+                error: "La nueva contraseña debe tener al menos 8 caracteres",
+            });
+        }
+
+        // Buscar el usuario
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({
+                status: 404,
+                message: "Usuario no encontrado",
+                data: null,
+                error: null,
+            });
+        }
+
+        // Encriptar la nueva contraseña
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        // Actualizar la contraseña
+        user.password = hashedPassword;
+        await user.save();
+
+        return res.status(200).json({
+            status: 200,
+            message: "Contraseña actualizada correctamente",
+            data: null,
+            error: null,
+        });
+    } catch (error) {
+        console.error("Error al actualizar contraseña:", error);
+        return res.status(500).json({
+            status: 500,
+            message: "Error al actualizar la contraseña",
             data: null,
             error: error instanceof Error ? error.message : "Error desconocido",
         });

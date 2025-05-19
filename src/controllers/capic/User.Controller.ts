@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import User from "../../models/capic/User";
 import { AuthRequest } from "../../interfaces/capic/capic.interface";
+import bcrypt from "bcryptjs";
 
 export const getUsers = async (req: Request, res: Response) => {
     try {

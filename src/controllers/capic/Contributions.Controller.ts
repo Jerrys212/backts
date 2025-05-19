@@ -115,16 +115,7 @@ export const getContributions = async (req: AuthRequest, res: Response) => {
 
 export const getUserContributions = async (req: AuthRequest, res: Response) => {
     try {
-        if (!req.user?.id) {
-            return res.status(401).json({
-                status: 401,
-                message: "No autorizado",
-                data: null,
-                error: null,
-            });
-        }
-
-        const contributions = await Contribution.find({ miembro: req.user.id }).populate("grupo", "miembro").sort({ createdAt: -1 });
+        const contributions = await Contribution.find({ miembro: req.user?.id }).populate("grupo", "miembro").sort({ createdAt: -1 });
 
         return res.status(200).json({
             status: 200,
@@ -210,15 +201,6 @@ export const getContributionById = async (req: AuthRequest, res: Response) => {
 
 export const getGroupContributions = async (req: AuthRequest, res: Response) => {
     try {
-        if (!req.user?.id) {
-            return res.status(401).json({
-                status: 401,
-                message: "No autorizado",
-                data: null,
-                error: null,
-            });
-        }
-
         const groupId = req.params.groupId;
 
         const group = await Group.findById(groupId);
@@ -231,8 +213,8 @@ export const getGroupContributions = async (req: AuthRequest, res: Response) => 
             });
         }
 
-        const isMember = group.miembros.includes(new mongoose.Types.ObjectId(req.user.id));
-        const isAdmin = req.user.role === "admin";
+        const isMember = group.miembros.includes(new mongoose.Types.ObjectId(req.user?.id));
+        const isAdmin = req.user?.role === "admin";
 
         if (!isMember && !isAdmin) {
             return res.status(403).json({
@@ -266,17 +248,8 @@ export const getGroupContributions = async (req: AuthRequest, res: Response) => 
 
 export const getUserContributionStats = async (req: AuthRequest, res: Response) => {
     try {
-        if (!req.user?.id) {
-            return res.status(401).json({
-                status: 401,
-                message: "No autorizado",
-                data: null,
-                error: null,
-            });
-        }
-
         const groupId = req.params.groupId;
-        const userId = req.user.id;
+        const userId = req.user?.id;
 
         const group = await Group.findById(groupId);
         if (!group) {
@@ -331,15 +304,6 @@ export const getUserContributionStats = async (req: AuthRequest, res: Response) 
 
 export const deleteContribution = async (req: AuthRequest, res: Response) => {
     try {
-        if (!req.user?.id) {
-            return res.status(401).json({
-                status: 401,
-                message: "No autorizado",
-                data: null,
-                error: null,
-            });
-        }
-
         const contributionId = req.params.id;
 
         // Validar que el ID tenga un formato válido
