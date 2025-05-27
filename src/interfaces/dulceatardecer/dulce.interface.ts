@@ -14,6 +14,8 @@ export interface IUser extends Document {
 export interface ICategory extends Document {
     name: string;
     description: string;
+    subCategories: string[];
+    isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -39,6 +41,7 @@ export interface ISaleItem {
 export interface ISale extends Document {
     items: ISaleItem[];
     total: number;
+    customer: string;
     seller: mongoose.Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;

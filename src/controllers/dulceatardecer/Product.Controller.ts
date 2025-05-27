@@ -119,7 +119,7 @@ export const getProductById = async (req: DAuthRequest, res: Response) => {
 // Crear un nuevo producto
 export const createProduct = async (req: DAuthRequest, res: Response) => {
     try {
-        const { name, description, category, price } = req.body;
+        const { name, description, category, subCategory, price } = req.body;
 
         // Verificar si la categoría existe
         if (!mongoose.Types.ObjectId.isValid(category)) {
@@ -159,6 +159,7 @@ export const createProduct = async (req: DAuthRequest, res: Response) => {
             name,
             description,
             category,
+            subCategory,
             price,
         });
 

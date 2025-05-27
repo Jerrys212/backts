@@ -12,20 +12,20 @@ const SaleItemSchema: Schema = new Schema(
             type: String,
             required: true,
         },
+        extras: {
+            type: Array,
+        },
         price: {
             type: Number,
             required: true,
-            min: [0, "El precio no puede ser negativo"],
         },
         quantity: {
             type: Number,
             required: true,
-            min: [1, "La cantidad debe ser al menos 1"],
         },
         subtotal: {
             type: Number,
             required: true,
-            min: [0, "El subtotal no puede ser negativo"],
         },
     },
     { _id: false }
@@ -33,6 +33,10 @@ const SaleItemSchema: Schema = new Schema(
 
 const SaleSchema: Schema = new Schema(
     {
+        customer: {
+            type: String,
+            required: true,
+        },
         items: {
             type: [SaleItemSchema],
             required: true,

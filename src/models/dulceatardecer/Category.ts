@@ -5,14 +5,22 @@ const CategorySchema: Schema = new Schema(
     {
         name: {
             type: String,
-            required: [true, "El nombre de la categoría es obligatorio"],
+            required: true,
             unique: true,
             trim: true,
         },
         description: {
             type: String,
-            required: [true, "La descripción es obligatoria"],
+            required: true,
             trim: true,
+        },
+        subCategories: {
+            type: Array,
+            default: [],
+        },
+        isActive: {
+            type: Boolean,
+            default: true,
         },
     },
     {

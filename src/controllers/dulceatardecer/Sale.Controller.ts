@@ -7,7 +7,7 @@ import Sale from "../../models/dulceatardecer/Sale";
 // Crear una nueva venta
 export const createSale = async (req: DAuthRequest, res: Response) => {
     try {
-        const { items, total } = req.body;
+        const { customer, items, total } = req.body;
 
         // Validar que los productos existan y estén activos
         for (const item of items) {
@@ -24,6 +24,7 @@ export const createSale = async (req: DAuthRequest, res: Response) => {
 
         // Crear la venta
         const newSale = await Sale.create({
+            customer,
             items,
             total,
             seller: req.user?.id,
@@ -52,48 +53,13 @@ export const createSale = async (req: DAuthRequest, res: Response) => {
 // Obtener todas las ventas
 export const getAllSales = async (req: DAuthRequest, res: Response) => {
     try {
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
-        const skip = (page - 1) * limit;
-
-        // Filtros opcionales
-        const query: any = {};
-
-        // Filtro por fecha
-        if (req.query.startDate && req.query.endDate) {
-            query.createdAt = {
-                $gte: new Date(req.query.startDate as string),
-                $lte: new Date(req.query.endDate as string),
-            };
-        } else if (req.query.startDate) {
-            query.createdAt = { $gte: new Date(req.query.startDate as string) };
-        } else if (req.query.endDate) {
-            query.createdAt = { $lte: new Date(req.query.endDate as string) };
-        }
-
-        // Filtro por vendedor
-        if (req.query.seller && mongoose.Types.ObjectId.isValid(req.query.seller as string)) {
-            query.seller = req.query.seller;
-        }
-
-        // Contar total de registros para paginación
-        const total = await Sale.countDocuments(query);
-
         // Obtener registros
-        const sales = await Sale.find(query).populate("seller", "username").sort({ createdAt: -1 }).skip(skip).limit(limit);
+        const sales = await Sale.find().populate("seller", "username").sort({ createdAt: -1 });
 
         res.status(200).json({
             status: 200,
             message: "Ventas obtenidas correctamente",
-            data: {
-                sales,
-                pagination: {
-                    total,
-                    page,
-                    limit,
-                    totalPages: Math.ceil(total / limit),
-                },
-            },
+            data: sales,
             error: null,
         });
     } catch (error) {

@@ -14,7 +14,7 @@ router.get("/", getAllCategories);
 router.get("/:id", validate(validateMongoId), getCategoryById);
 
 // Rutas de escritura (solo admin y usuarios con permiso de categorias)
-router.post("/", authorize("admin", "categorias"), validate(validateCategory), createCategory);
+router.post("/", authorize("admin"), validate(validateCategory), createCategory);
 router.put("/:id", authorize("admin", "categorias"), validate([...validateMongoId, ...validateCategory]), updateCategory);
 router.delete("/:id", authorize("admin", "categorias"), validate(validateMongoId), deleteCategory);
 

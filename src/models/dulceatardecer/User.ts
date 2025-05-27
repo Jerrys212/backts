@@ -6,13 +6,13 @@ const UserSchema: Schema = new Schema(
     {
         username: {
             type: String,
-            required: [true, "El nombre de usuario es obligatorio"],
+            required: true,
             unique: true,
             trim: true,
         },
         password: {
             type: String,
-            required: [true, "La contraseña es obligatoria"],
+            required: true,
             select: false,
         },
         permissions: {

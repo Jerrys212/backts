@@ -5,23 +5,26 @@ const ProductSchema: Schema = new Schema(
     {
         name: {
             type: String,
-            required: [true, "El nombre del producto es obligatorio"],
+            required: true,
             trim: true,
         },
         description: {
             type: String,
-            required: [true, "La descripción es obligatoria"],
+            required: true,
             trim: true,
         },
         category: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "dulce.category",
-            required: [true, "La categoría es obligatoria"],
+            required: true,
+        },
+        subCategory: {
+            type: String,
+            trim: true,
         },
         price: {
             type: Number,
-            required: [true, "El precio es obligatorio"],
-            min: [0, "El precio no puede ser negativo"],
+            required: true,
         },
         isActive: {
             type: Boolean,

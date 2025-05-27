@@ -7,7 +7,7 @@ import Product from "../../models/dulceatardecer/Product";
 // Obtener todas las categorías
 export const getAllCategories = async (req: DAuthRequest, res: Response) => {
     try {
-        const categories = await Category.find().sort("name");
+        const categories = await Category.find({ isActive: true }).sort("name");
 
         res.status(200).json({
             status: 200,
@@ -72,7 +72,7 @@ export const getCategoryById = async (req: DAuthRequest, res: Response) => {
 // Crear una nueva categoría
 export const createCategory = async (req: DAuthRequest, res: Response) => {
     try {
-        const { name, description } = req.body;
+        const { name, description, subCategories } = req.body;
 
         // Verificar si ya existe una categoría con ese nombre
         const existingCategory = await Category.findOne({ name });
@@ -90,6 +90,7 @@ export const createCategory = async (req: DAuthRequest, res: Response) => {
         const newCategory = await Category.create({
             name,
             description,
+            subCategories: subCategories || [],
         });
 
         res.status(201).json({
@@ -113,7 +114,7 @@ export const createCategory = async (req: DAuthRequest, res: Response) => {
 export const updateCategory = async (req: DAuthRequest, res: Response) => {
     try {
         const categoryId = req.params.id;
-        const { name, description } = req.body;
+        const { name, description, subCategories } = req.body;
 
         // Validar formato del ID
         if (!mongoose.Types.ObjectId.isValid(categoryId)) {
@@ -151,7 +152,15 @@ export const updateCategory = async (req: DAuthRequest, res: Response) => {
         }
 
         // Actualizar la categoría
-        const updatedCategory = await Category.findByIdAndUpdate(categoryId, { name, description }, { new: true });
+        const updatedCategory = await Category.findByIdAndUpdate(
+            categoryId,
+            {
+                ...(name && { name }),
+                ...(description && { description }),
+                ...(subCategories !== undefined && { subCategories }),
+            },
+            { new: true }
+        );
 
         res.status(200).json({
             status: 200,
@@ -170,12 +179,12 @@ export const updateCategory = async (req: DAuthRequest, res: Response) => {
     }
 };
 
-// Eliminar una categoría
-export const deleteCategory = async (req: DAuthRequest, res: Response) => {
+// Agregar subcategoría a una categoría existente
+export const addSubCategory = async (req: DAuthRequest, res: Response) => {
     try {
         const categoryId = req.params.id;
+        const { subCategoryName } = req.body;
 
-        // Validar formato del ID
         if (!mongoose.Types.ObjectId.isValid(categoryId)) {
             return res.status(400).json({
                 status: 400,
@@ -185,7 +194,6 @@ export const deleteCategory = async (req: DAuthRequest, res: Response) => {
             });
         }
 
-        // Verificar si la categoría existe
         const category = await Category.findById(categoryId);
 
         if (!category) {
@@ -197,7 +205,124 @@ export const deleteCategory = async (req: DAuthRequest, res: Response) => {
             });
         }
 
-        // Verificar si hay productos asociados a esta categoría
+        // Verificar si la subcategoría ya existe
+        if (category.subCategories.includes(subCategoryName)) {
+            return res.status(400).json({
+                status: 400,
+                message: "La subcategoría ya existe",
+                data: null,
+                error: null,
+            });
+        }
+
+        // Agregar la subcategoría
+        category.subCategories.push(subCategoryName);
+        await category.save();
+
+        res.status(200).json({
+            status: 200,
+            message: "Subcategoría agregada correctamente",
+            data: category,
+            error: null,
+        });
+    } catch (error) {
+        console.error("Error al agregar subcategoría:", error);
+        res.status(500).json({
+            status: 500,
+            message: "Error al agregar subcategoría",
+            data: null,
+            error: error instanceof Error ? error.message : "Error desconocido",
+        });
+    }
+};
+
+// Eliminar subcategoría de una categoría
+export const removeSubCategory = async (req: DAuthRequest, res: Response) => {
+    try {
+        const categoryId = req.params.id;
+        const { subCategoryName } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+            return res.status(400).json({
+                status: 400,
+                message: "ID de categoría inválido",
+                data: null,
+                error: null,
+            });
+        }
+
+        const category = await Category.findById(categoryId);
+
+        if (!category) {
+            return res.status(404).json({
+                status: 404,
+                message: "Categoría no encontrada",
+                data: null,
+                error: null,
+            });
+        }
+
+        // Verificar productos asociados a la subcategoría
+        const productsCount = await Product.countDocuments({
+            category: categoryId,
+            subCategory: subCategoryName,
+        });
+
+        if (productsCount > 0) {
+            return res.status(400).json({
+                status: 400,
+                message: `No se puede eliminar la subcategoría porque tiene ${productsCount} productos asociados`,
+                data: null,
+                error: null,
+            });
+        }
+
+        // Remover la subcategoría
+        category.subCategories = category.subCategories.filter((sub) => sub !== subCategoryName);
+        await category.save();
+
+        res.status(200).json({
+            status: 200,
+            message: "Subcategoría eliminada correctamente",
+            data: category,
+            error: null,
+        });
+    } catch (error) {
+        console.error("Error al eliminar subcategoría:", error);
+        res.status(500).json({
+            status: 500,
+            message: "Error al eliminar subcategoría",
+            data: null,
+            error: error instanceof Error ? error.message : "Error desconocido",
+        });
+    }
+};
+
+// Eliminar una categoría (desactivándola)
+export const deleteCategory = async (req: DAuthRequest, res: Response) => {
+    try {
+        const categoryId = req.params.id;
+
+        if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+            return res.status(400).json({
+                status: 400,
+                message: "ID de categoría inválido",
+                data: null,
+                error: null,
+            });
+        }
+
+        const category = await Category.findById(categoryId);
+
+        if (!category) {
+            return res.status(404).json({
+                status: 404,
+                message: "Categoría no encontrada",
+                data: null,
+                error: null,
+            });
+        }
+
         const productsCount = await Product.countDocuments({ category: categoryId });
 
         if (productsCount > 0) {
@@ -209,8 +334,9 @@ export const deleteCategory = async (req: DAuthRequest, res: Response) => {
             });
         }
 
-        // Eliminar la categoría
-        await Category.findByIdAndDelete(categoryId);
+        // Desactivar la categoría en lugar de eliminarla
+        category.isActive = false;
+        await category.save();
 
         res.status(200).json({
             status: 200,
