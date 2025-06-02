@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { DAuthRequest } from "../../middlewares/dulceatardecer/auth";
 import Category from "../../models/dulceatardecer/Category";
 import Product from "../../models/dulceatardecer/Product";
+import { broadcastToAll } from "../../config/websockets";
 
 // Obtener todas las categorías
 export const getAllCategories = async (req: DAuthRequest, res: Response) => {
@@ -93,6 +94,8 @@ export const createCategory = async (req: DAuthRequest, res: Response) => {
             subCategories: subCategories || [],
         });
 
+        broadcastToAll("newCategory", newCategory);
+
         res.status(201).json({
             status: 201,
             message: "Categoría creada correctamente",
@@ -161,6 +164,8 @@ export const updateCategory = async (req: DAuthRequest, res: Response) => {
             },
             { new: true }
         );
+
+        broadcastToAll("updatedCategory", updateCategory);
 
         res.status(200).json({
             status: 200,
@@ -337,6 +342,8 @@ export const deleteCategory = async (req: DAuthRequest, res: Response) => {
         // Desactivar la categoría en lugar de eliminarla
         category.isActive = false;
         await category.save();
+
+        broadcastToAll("deletedCategory", category);
 
         res.status(200).json({
             status: 200,
