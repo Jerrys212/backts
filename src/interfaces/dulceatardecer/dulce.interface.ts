@@ -31,18 +31,22 @@ export interface IProduct extends Document {
 }
 
 export interface ISaleItem {
-    product: mongoose.Types.ObjectId;
+    product: string;
     name: string;
+    extras?: any[];
     price: number;
     quantity: number;
     subtotal: number;
 }
 
 export interface ISale extends Document {
+    customer: string;
     items: ISaleItem[];
     total: number;
-    customer: string;
-    seller: mongoose.Types.ObjectId;
+    seller: string;
+    status: "En proceso" | "Cerrada" | "Cancelada";
+    statusUpdatedAt: Date;
+    statusUpdatedBy?: string;
     createdAt: Date;
     updatedAt: Date;
 }

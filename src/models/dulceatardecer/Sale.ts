@@ -1,6 +1,13 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { ISale, ISaleItem } from "../../interfaces/dulceatardecer/dulce.interface";
 
+// Enum para los status de venta
+export enum SaleStatus {
+    EN_PROCESO = "En proceso",
+    CERRADA = "Cerrada",
+    CANCELADA = "Cancelada",
+}
+
 const SaleItemSchema: Schema = new Schema(
     {
         product: {
@@ -57,10 +64,33 @@ const SaleSchema: Schema = new Schema(
             ref: "dulce.user",
             required: true,
         },
+        status: {
+            type: String,
+            enum: Object.values(SaleStatus),
+            default: SaleStatus.EN_PROCESO,
+            required: true,
+        },
+        statusUpdatedAt: {
+            type: Date,
+            default: Date.now,
+        },
+        statusUpdatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "dulce.user",
+        },
     },
     {
         timestamps: true,
+        versionKey: false,
     }
 );
+
+// Middleware para actualizar statusUpdatedAt cuando cambie el status
+SaleSchema.pre("save", function (next) {
+    if (this.isModified("status")) {
+        this.statusUpdatedAt = new Date();
+    }
+    next();
+});
 
 export default mongoose.model<ISale>("dulce.sale", SaleSchema);

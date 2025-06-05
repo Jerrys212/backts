@@ -6,7 +6,6 @@ import Category from "../../models/dulceatardecer/Category";
 import User from "../../models/dulceatardecer/User";
 import mongoose from "mongoose";
 
-// Definir interfaces para los objetos populados
 interface PopulatedSeller {
     _id: mongoose.Types.ObjectId;
     username: string;
@@ -15,6 +14,14 @@ interface PopulatedSeller {
 interface PopulatedCategory {
     _id: mongoose.Types.ObjectId;
     name: string;
+}
+
+interface ProductWithCategory {
+    _id: mongoose.Types.ObjectId;
+    name: string;
+    category: {
+        name: string;
+    } | null;
 }
 
 interface SaleWithPopulatedSeller extends mongoose.Document {
@@ -37,7 +44,7 @@ interface ProductWithPopulatedCategory extends mongoose.Document {
     isActive: boolean;
 }
 
-// Reporte de ventas diarias
+// Reporte de ventas diarias simplificado
 export const getDailySalesReport = async (req: DAuthRequest, res: Response) => {
     try {
         // Configurar fechas para hoy (desde 00:00:00 hasta 23:59:59)
@@ -47,22 +54,44 @@ export const getDailySalesReport = async (req: DAuthRequest, res: Response) => {
 
         const sales = (await Sale.find({
             createdAt: { $gte: startOfDay, $lte: endOfDay },
-        }).populate("seller", "username")) as unknown as SaleWithPopulatedSeller[];
+        })) as unknown as SaleWithPopulatedSeller[];
 
         // Calcular total vendido
         const totalAmount = sales.reduce((sum, sale) => sum + sale.total, 0);
 
+        // Obtener todos los IDs de productos únicos
+        const productIds = [...new Set(sales.flatMap((sale) => sale.items.map((item) => item.product.toString())))];
+
+        // Obtener información de productos con sus categorías
+        const products = (await Product.find({
+            _id: { $in: productIds },
+        }).populate("category", "name")) as any[];
+
+        // Crear un mapa de productos para acceso rápido
+        const productMap = new Map(
+            products.map((product) => [
+                product._id.toString(),
+                {
+                    name: product.name,
+                    category: product.category?.name || "Sin categoría",
+                },
+            ])
+        );
+
         // Agrupar por producto
-        const productStats: Record<string, { count: number; total: number; name: string }> = {};
+        const productStats: Record<string, { count: number; total: number; name: string; category: string }> = {};
 
         sales.forEach((sale) => {
             sale.items.forEach((item) => {
                 const productId = item.product.toString();
+                const productInfo = productMap.get(productId);
+
                 if (!productStats[productId]) {
                     productStats[productId] = {
                         count: 0,
                         total: 0,
-                        name: item.name,
+                        name: productInfo?.name || item.name,
+                        category: productInfo?.category || "Sin categoría",
                     };
                 }
                 productStats[productId].count += item.quantity;
@@ -73,40 +102,13 @@ export const getDailySalesReport = async (req: DAuthRequest, res: Response) => {
         // Convertir a array y ordenar por cantidad vendida (de mayor a menor)
         const topProducts = Object.values(productStats).sort((a, b) => b.count - a.count);
 
-        // Agrupar por vendedor
-        const sellerStats: Record<string, { sales: number; total: number; username: string }> = {};
-
-        sales.forEach((sale) => {
-            const sellerId = sale.seller._id.toString();
-            const sellerName = sale.seller.username;
-
-            if (!sellerStats[sellerId]) {
-                sellerStats[sellerId] = {
-                    sales: 0,
-                    total: 0,
-                    username: sellerName,
-                };
-            }
-
-            sellerStats[sellerId].sales++;
-            sellerStats[sellerId].total += sale.total;
-        });
-
-        // Convertir a array
-        const sellerReports = Object.values(sellerStats);
-
         res.status(200).json({
             status: 200,
             message: "Reporte diario generado correctamente",
             data: {
                 date: new Date().toISOString().split("T")[0],
-                summary: {
-                    totalSales: sales.length,
-                    totalAmount,
-                },
+                totalAmount,
                 topProducts,
-                sellerReports,
-                hourlyDistribution: getHourlyDistribution(sales),
             },
             error: null,
         });
@@ -121,7 +123,6 @@ export const getDailySalesReport = async (req: DAuthRequest, res: Response) => {
     }
 };
 
-// Reporte de ventas por rango de fechas
 export const getDateRangeReport = async (req: DAuthRequest, res: Response) => {
     try {
         const { startDate, endDate } = req.body;
@@ -152,24 +153,46 @@ export const getDateRangeReport = async (req: DAuthRequest, res: Response) => {
             });
         }
 
-        const sales = (await Sale.find({
+        const sales = await Sale.find({
             createdAt: { $gte: start, $lte: end },
-        }).populate("seller", "username")) as unknown as SaleWithPopulatedSeller[];
+        });
 
         // Calcular total vendido
         const totalAmount = sales.reduce((sum, sale) => sum + sale.total, 0);
 
+        // Obtener todos los IDs de productos únicos
+        const productIds = [...new Set(sales.flatMap((sale) => sale.items.map((item) => item.product.toString())))];
+
+        // Obtener información de productos con sus categorías
+        const products = (await Product.find({
+            _id: { $in: productIds },
+        }).populate("category", "name")) as any[];
+
+        // Crear un mapa de productos para acceso rápido
+        const productMap = new Map(
+            products.map((product) => [
+                product._id.toString(),
+                {
+                    name: product.name,
+                    category: product.category?.name || "Sin categoría",
+                },
+            ])
+        );
+
         // Agrupar por producto
-        const productStats: Record<string, { count: number; total: number; name: string }> = {};
+        const productStats: Record<string, { count: number; total: number; name: string; category: string }> = {};
 
         sales.forEach((sale) => {
             sale.items.forEach((item) => {
                 const productId = item.product.toString();
+                const productInfo = productMap.get(productId);
+
                 if (!productStats[productId]) {
                     productStats[productId] = {
                         count: 0,
                         total: 0,
-                        name: item.name,
+                        name: productInfo?.name || item.name,
+                        category: productInfo?.category || "Sin categoría",
                     };
                 }
                 productStats[productId].count += item.quantity;
@@ -177,124 +200,26 @@ export const getDateRangeReport = async (req: DAuthRequest, res: Response) => {
             });
         });
 
-        // Convertir a array y ordenar por cantidad vendida (de mayor a menor)
-        const topProducts = Object.values(productStats).sort((a, b) => b.count - a.count);
+        // Convertir a array y ordenar por cantidad vendida
+        const allProducts = Object.values(productStats).sort((a, b) => b.count - a.count);
 
-        // Agrupar por vendedor
-        const sellerStats: Record<string, { sales: number; total: number; username: string }> = {};
+        // Productos más vendidos (top 10)
+        const topProducts = allProducts.slice(0, 10);
 
-        sales.forEach((sale) => {
-            const sellerId = sale.seller._id.toString();
-            const sellerName = sale.seller.username;
-
-            if (!sellerStats[sellerId]) {
-                sellerStats[sellerId] = {
-                    sales: 0,
-                    total: 0,
-                    username: sellerName,
-                };
-            }
-
-            sellerStats[sellerId].sales++;
-            sellerStats[sellerId].total += sale.total;
-        });
-
-        // Convertir a array
-        const sellerReports = Object.values(sellerStats);
-
-        // Agrupar por día
-        const dailySales: Record<string, { count: number; total: number }> = {};
-
-        sales.forEach((sale) => {
-            const date = new Date(sale.createdAt).toISOString().split("T")[0];
-
-            if (!dailySales[date]) {
-                dailySales[date] = { count: 0, total: 0 };
-            }
-
-            dailySales[date].count++;
-            dailySales[date].total += sale.total;
-        });
-
-        // Convertir a array
-        const dailyReports = Object.entries(dailySales).map(([date, data]) => ({
-            date,
-            ...data,
-        }));
-
-        // Agrupar por categoría
-        const categoryStats: Record<
-            string,
-            {
-                count: number;
-                total: number;
-                products: Set<string>;
-                name: string;
-            }
-        > = {};
-
-        const productCategories: Record<string, { categoryId: string; categoryName: string }> = {};
-
-        // Obtener la relación de productos y categorías
-        const products = (await Product.find().populate("category", "name")) as unknown as ProductWithPopulatedCategory[];
-
-        products.forEach((product) => {
-            productCategories[product._id.toString()] = {
-                categoryId: product.category._id.toString(),
-                categoryName: product.category.name,
-            };
-        });
-
-        // Calcular estadísticas por categoría
-        sales.forEach((sale) => {
-            sale.items.forEach((item) => {
-                const productId = item.product.toString();
-                if (productCategories[productId]) {
-                    const { categoryId, categoryName } = productCategories[productId];
-
-                    if (!categoryStats[categoryId]) {
-                        categoryStats[categoryId] = {
-                            count: 0,
-                            total: 0,
-                            products: new Set(),
-                            name: categoryName,
-                        };
-                    }
-
-                    categoryStats[categoryId].count += item.quantity;
-                    categoryStats[categoryId].total += item.subtotal;
-                    categoryStats[categoryId].products.add(productId);
-                }
-            });
-        });
-
-        // Convertir a array y calcular total de productos por categoría
-        const categoryReports = Object.entries(categoryStats).map(([categoryId, data]) => ({
-            categoryId,
-            name: data.name,
-            count: data.count,
-            total: data.total,
-            uniqueProducts: data.products.size,
-        }));
+        // Productos menos vendidos (últimos 10)
+        const leastSoldProducts = allProducts.slice(-10).reverse(); // Reverse para mostrar del menos vendido al más vendido de los últimos
 
         res.status(200).json({
             status: 200,
             message: "Reporte por rango de fechas generado correctamente",
             data: {
                 period: {
-                    startDate: start,
-                    endDate: end,
-                    days: Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1,
+                    startDate: start.toISOString().split("T")[0],
+                    endDate: end.toISOString().split("T")[0],
                 },
-                summary: {
-                    totalSales: sales.length,
-                    totalAmount,
-                    averagePerDay: dailyReports.length > 0 ? totalAmount / dailyReports.length : 0,
-                },
-                topProducts: topProducts.slice(0, 10), // Top 10
-                sellerReports,
-                dailyReports,
-                categoryReports,
+                totalAmount,
+                topProducts,
+                leastSoldProducts,
             },
             error: null,
         });

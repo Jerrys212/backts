@@ -1,4 +1,5 @@
 import { body, param } from "express-validator";
+import { SaleStatus } from "../../models/dulceatardecer/Sale";
 
 // Validaciones para crear y editar usuarios
 export const validateUser = [
@@ -90,4 +91,64 @@ export const validateDateRange = [
     body("startDate").optional().isISO8601().withMessage("Formato de fecha inicial no válido"),
 
     body("endDate").optional().isISO8601().withMessage("Formato de fecha final no válido"),
+];
+
+export const validateSaleStatus = [
+    body("status").notEmpty().withMessage("El status es requerido").isIn(Object.values(SaleStatus)).withMessage("Status inválido. Debe ser: En proceso, Cerrada o Cancelada"),
+];
+
+// Validador para editar venta
+export const validateSaleEdit = [
+    body("customer")
+        .optional()
+        .isString()
+        .withMessage("El nombre del cliente debe ser una cadena de texto")
+        .isLength({ min: 2, max: 100 })
+        .withMessage("El nombre del cliente debe tener entre 2 y 100 caracteres"),
+
+    body("items").optional().isArray({ min: 1 }).withMessage("Los items deben ser un array con al menos un elemento"),
+
+    body("items.*.product").optional().isMongoId().withMessage("El ID del producto debe ser válido"),
+
+    body("items.*.name")
+        .optional()
+        .isString()
+        .withMessage("El nombre del producto debe ser una cadena de texto")
+        .isLength({ min: 1, max: 100 })
+        .withMessage("El nombre del producto debe tener entre 1 y 100 caracteres"),
+
+    body("items.*.price")
+        .optional()
+        .isNumeric()
+        .withMessage("El precio debe ser un número")
+        .custom((value) => {
+            if (value < 0) {
+                throw new Error("El precio no puede ser negativo");
+            }
+            return true;
+        }),
+
+    body("items.*.quantity").optional().isInt({ min: 1 }).withMessage("La cantidad debe ser un número entero mayor a 0"),
+
+    body("items.*.subtotal")
+        .optional()
+        .isNumeric()
+        .withMessage("El subtotal debe ser un número")
+        .custom((value) => {
+            if (value < 0) {
+                throw new Error("El subtotal no puede ser negativo");
+            }
+            return true;
+        }),
+
+    body("total")
+        .optional()
+        .isNumeric()
+        .withMessage("El total debe ser un número")
+        .custom((value) => {
+            if (value < 0) {
+                throw new Error("El total no puede ser negativo");
+            }
+            return true;
+        }),
 ];

@@ -2,14 +2,12 @@ import { Response } from "express";
 import mongoose from "mongoose";
 import { DAuthRequest } from "../../middlewares/dulceatardecer/auth";
 import Product from "../../models/dulceatardecer/Product";
-import Sale from "../../models/dulceatardecer/Sale";
+import Sale, { SaleStatus } from "../../models/dulceatardecer/Sale";
 
-// Crear una nueva venta
 export const createSale = async (req: DAuthRequest, res: Response) => {
     try {
         const { customer, items, total } = req.body;
 
-        // Validar que los productos existan y estén activos
         for (const item of items) {
             const product = await Product.findById(item.product);
             if (!product || !product.isActive) {
@@ -22,16 +20,16 @@ export const createSale = async (req: DAuthRequest, res: Response) => {
             }
         }
 
-        // Crear la venta
         const newSale = await Sale.create({
             customer,
             items,
             total,
             seller: req.user?.id,
+            status: SaleStatus.EN_PROCESO,
+            statusUpdatedBy: req.user?.id,
         });
 
-        // Poblar datos del vendedor para la respuesta
-        const populatedSale = await Sale.findById(newSale._id).populate("seller", "username");
+        const populatedSale = await Sale.findById(newSale._id).populate("seller", "username").populate("statusUpdatedBy", "username");
 
         res.status(201).json({
             status: 201,
@@ -42,7 +40,7 @@ export const createSale = async (req: DAuthRequest, res: Response) => {
     } catch (error) {
         console.error("Error al crear venta:", error);
         res.status(500).json({
-            status: 0.5,
+            status: 500,
             message: "Error al registrar la venta",
             data: null,
             error: error instanceof Error ? error.message : "Error desconocido",
@@ -50,11 +48,32 @@ export const createSale = async (req: DAuthRequest, res: Response) => {
     }
 };
 
-// Obtener todas las ventas
 export const getAllSales = async (req: DAuthRequest, res: Response) => {
     try {
-        // Obtener registros
-        const sales = await Sale.find().populate("seller", "username").sort({ createdAt: -1 });
+        const { status, startDate, endDate } = req.query;
+        const filter: any = {};
+
+        if (status && Object.values(SaleStatus).includes(status as SaleStatus)) {
+            filter.status = status;
+        }
+
+        if (startDate || endDate) {
+            filter.createdAt = {};
+            if (startDate) filter.createdAt.$gte = new Date(startDate as string);
+            if (endDate) filter.createdAt.$lte = new Date(endDate as string);
+        }
+
+        const sales = await Sale.find(filter)
+            .populate("seller", "username")
+            .populate("statusUpdatedBy", "username")
+            .sort({ createdAt: -1 })
+            .populate({
+                path: "items.product",
+                populate: {
+                    path: "category",
+                    select: "name description", // Ajusta según los campos de tu modelo Category
+                },
+            });
 
         res.status(200).json({
             status: 200,
@@ -73,12 +92,10 @@ export const getAllSales = async (req: DAuthRequest, res: Response) => {
     }
 };
 
-// Obtener una venta por ID
 export const getSaleById = async (req: DAuthRequest, res: Response) => {
     try {
         const saleId = req.params.id;
 
-        // Validar formato del ID
         if (!mongoose.Types.ObjectId.isValid(saleId)) {
             return res.status(400).json({
                 status: 400,
@@ -88,7 +105,16 @@ export const getSaleById = async (req: DAuthRequest, res: Response) => {
             });
         }
 
-        const sale = await Sale.findById(saleId).populate("seller", "username");
+        const sale = await Sale.findById(saleId)
+            .populate("seller", "username")
+            .populate("statusUpdatedBy", "username")
+            .populate({
+                path: "items.product",
+                populate: {
+                    path: "category",
+                    select: "name",
+                },
+            });
 
         if (!sale) {
             return res.status(404).json({
@@ -116,162 +142,140 @@ export const getSaleById = async (req: DAuthRequest, res: Response) => {
     }
 };
 
-// Obtener ventas del día actual
-export const getTodaySales = async (req: DAuthRequest, res: Response) => {
+export const updateSaleStatus = async (req: DAuthRequest, res: Response) => {
     try {
-        // Configurar fechas para hoy (desde 00:00:00 hasta 23:59:59)
-        const today = new Date();
-        const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-        const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+        const saleId = req.params.id;
+        const { status } = req.body;
 
-        const sales = await Sale.find({
-            createdAt: { $gte: startOfDay, $lte: endOfDay },
-        }).populate("seller", "username");
-
-        // Calcular total vendido
-        const totalAmount = sales.reduce((sum, sale) => sum + sale.total, 0);
-
-        // Contar productos vendidos
-        const productsSold: Record<string, { count: number; total: number; name: string }> = {};
-
-        sales.forEach((sale) => {
-            sale.items.forEach((item) => {
-                const productId = item.product.toString();
-                if (!productsSold[productId]) {
-                    productsSold[productId] = {
-                        count: 0,
-                        total: 0,
-                        name: item.name,
-                    };
-                }
-                productsSold[productId].count += item.quantity;
-                productsSold[productId].total += item.subtotal;
+        if (!mongoose.Types.ObjectId.isValid(saleId)) {
+            return res.status(400).json({
+                status: 400,
+                message: "ID de venta inválido",
+                data: null,
+                error: null,
             });
-        });
+        }
+
+        if (!Object.values(SaleStatus).includes(status)) {
+            return res.status(400).json({
+                status: 400,
+                message: "Status inválido. Debe ser: En proceso, Cerrada o Cancelada",
+                data: null,
+                error: null,
+            });
+        }
+
+        const sale = await Sale.findById(saleId);
+        if (!sale) {
+            return res.status(404).json({
+                status: 404,
+                message: "Venta no encontrada",
+                data: null,
+                error: null,
+            });
+        }
+
+        if (sale.status === SaleStatus.CERRADA || sale.status === SaleStatus.CANCELADA) {
+            if (status === sale.status) {
+                return res.status(400).json({
+                    status: 400,
+                    message: `La venta ya está ${status.toLowerCase()}`,
+                    data: null,
+                    error: null,
+                });
+            }
+        }
+
+        sale.status = status;
+        sale.statusUpdatedBy = req.user?.id;
+        sale.statusUpdatedAt = new Date();
+        await sale.save();
+
+        const updatedSale = await Sale.findById(saleId).populate("seller", "username").populate("statusUpdatedBy", "username");
 
         res.status(200).json({
             status: 200,
-            message: "Ventas del día obtenidas correctamente",
-            data: {
-                sales,
-                summary: {
-                    totalSales: sales.length,
-                    totalAmount,
-                    productsSold: Object.values(productsSold),
-                },
-            },
+            message: `Status de venta actualizado a ${status}`,
+            data: updatedSale,
             error: null,
         });
     } catch (error) {
-        console.error("Error al obtener ventas del día:", error);
+        console.error("Error al actualizar status:", error);
         res.status(500).json({
             status: 500,
-            message: "Error al obtener ventas del día",
+            message: "Error al actualizar status de venta",
             data: null,
             error: error instanceof Error ? error.message : "Error desconocido",
         });
     }
 };
 
-// Obtener ventas por rango de fechas
-export const getSalesByDateRange = async (req: DAuthRequest, res: Response) => {
+export const updateSale = async (req: DAuthRequest, res: Response) => {
     try {
-        const { startDate, endDate } = req.body;
+        const saleId = req.params.id;
+        const { customer, items, total } = req.body;
 
-        if (!startDate || !endDate) {
+        if (!mongoose.Types.ObjectId.isValid(saleId)) {
             return res.status(400).json({
                 status: 400,
-                message: "Fecha inicial y final son requeridas",
+                message: "ID de venta inválido",
                 data: null,
                 error: null,
             });
         }
 
-        // Convertir a fechas y ajustar para incluir el día completo
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-
-        // Validar que la fecha inicial no sea posterior a la final
-        if (start > end) {
-            return res.status(400).json({
-                status: 400,
-                message: "La fecha inicial no puede ser posterior a la fecha final",
+        const sale = await Sale.findById(saleId);
+        if (!sale) {
+            return res.status(404).json({
+                status: 404,
+                message: "Venta no encontrada",
                 data: null,
                 error: null,
             });
         }
 
-        const sales = await Sale.find({
-            createdAt: { $gte: start, $lte: end },
-        })
-            .populate("seller", "username")
-            .sort({ createdAt: -1 });
+        if (sale.status !== SaleStatus.EN_PROCESO) {
+            return res.status(400).json({
+                status: 400,
+                message: "Solo se pueden editar ventas que estén en proceso",
+                data: null,
+                error: null,
+            });
+        }
 
-        // Calcular total vendido
-        const totalAmount = sales.reduce((sum, sale) => sum + sale.total, 0);
-
-        // Contar productos vendidos
-        const productsSold: Record<string, { count: number; total: number; name: string }> = {};
-
-        sales.forEach((sale) => {
-            sale.items.forEach((item) => {
-                const productId = item.product.toString();
-                if (!productsSold[productId]) {
-                    productsSold[productId] = {
-                        count: 0,
-                        total: 0,
-                        name: item.name,
-                    };
+        if (items) {
+            for (const item of items) {
+                const product = await Product.findById(item.product);
+                if (!product || !product.isActive) {
+                    return res.status(400).json({
+                        status: 400,
+                        message: `Producto ${item.name} no encontrado o no está activo`,
+                        data: null,
+                        error: null,
+                    });
                 }
-                productsSold[productId].count += item.quantity;
-                productsSold[productId].total += item.subtotal;
-            });
-        });
-
-        // Ventas por día
-        const dailySales: Record<string, { count: number; total: number }> = {};
-
-        sales.forEach((sale) => {
-            const date = new Date(sale.createdAt).toISOString().split("T")[0];
-
-            if (!dailySales[date]) {
-                dailySales[date] = { count: 0, total: 0 };
             }
+        }
 
-            dailySales[date].count++;
-            dailySales[date].total += sale.total;
-        });
+        if (customer) sale.customer = customer;
+        if (items) sale.items = items;
+        if (total) sale.total = total;
+
+        await sale.save();
+
+        const updatedSale = await Sale.findById(saleId).populate("seller", "username").populate("statusUpdatedBy", "username");
 
         res.status(200).json({
             status: 200,
-            message: "Ventas obtenidas correctamente",
-            data: {
-                sales,
-                summary: {
-                    totalSales: sales.length,
-                    totalAmount,
-                    productsSold: Object.values(productsSold),
-                    dailySales: Object.entries(dailySales).map(([date, data]) => ({
-                        date,
-                        ...data,
-                    })),
-                    period: {
-                        startDate: start,
-                        endDate: end,
-                        days: Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1,
-                    },
-                },
-            },
+            message: "Venta actualizada correctamente",
+            data: updatedSale,
             error: null,
         });
     } catch (error) {
-        console.error("Error al obtener ventas por fechas:", error);
+        console.error("Error al editar venta:", error);
         res.status(500).json({
             status: 500,
-            message: "Error al obtener ventas",
+            message: "Error al editar venta",
             data: null,
             error: error instanceof Error ? error.message : "Error desconocido",
         });
