@@ -46,11 +46,12 @@ const handleConnection = (socket: AuthenticatedSocket) => {
     });
 };
 
-// Inicializar servidor
 export const initializeSocketManager = (server: HTTPServer): void => {
+    const allowedOrigins = ["https://dulceatardecer.netlify.app", "https://capicsite.netlify.app", "http://localhost:5173"];
+
     io = new SocketIOServer(server, {
         cors: {
-            origin: "http://localhost:5173",
+            origin: allowedOrigins,
             methods: ["GET", "POST"],
             credentials: true,
         },
@@ -61,7 +62,6 @@ export const initializeSocketManager = (server: HTTPServer): void => {
 
     console.log("Socket server inicializado");
 };
-
 // UNA SOLA FUNCIÓN para enviar cualquier cosa al frontend
 export const broadcastToAll = (eventName: string, data: any) => {
     if (!io) {

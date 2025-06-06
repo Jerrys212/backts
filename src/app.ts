@@ -21,8 +21,22 @@ const app: Express = express();
 
 const httpServer = createServer(app);
 
-// Middleware
-app.use(cors());
+const allowedOrigins = ["https://dulceatardecer.netlify.app", "https://capicsite.netlify.app", "http://localhost:5173"];
+
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            if (!origin) return callback(null, true);
+            if (allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            } else {
+                return callback(new Error("No autorizado por CORS"));
+            }
+        },
+        credentials: true,
+    })
+);
+
 app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

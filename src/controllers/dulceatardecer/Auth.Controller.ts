@@ -4,7 +4,6 @@ import { DAuthRequest } from "../../middlewares/dulceatardecer/auth";
 import User from "../../models/dulceatardecer/User";
 import { generateToken } from "../../utils/capic/helpers";
 
-// Iniciar sesión
 export const login = async (req: Request, res: Response) => {
     try {
         const { username, password } = req.body;
@@ -60,7 +59,6 @@ export const login = async (req: Request, res: Response) => {
     }
 };
 
-// Obtener perfil de usuario actual
 export const getCurrentUser = async (req: DAuthRequest, res: Response) => {
     try {
         const user = await User.findById(req.user?.id).select("-password");
@@ -95,7 +93,6 @@ export const getCurrentUser = async (req: DAuthRequest, res: Response) => {
     }
 };
 
-// Cambiar contraseña
 export const changePassword = async (req: DAuthRequest, res: Response) => {
     try {
         const { currentPassword, newPassword } = req.body;
