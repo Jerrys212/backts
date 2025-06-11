@@ -19,9 +19,12 @@ const SaleItemSchema: Schema = new Schema(
             type: String,
             required: true,
         },
-        extras: {
-            type: Array,
-        },
+        extras: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "dulce.extras",
+            },
+        ],
         price: {
             type: Number,
             required: true,

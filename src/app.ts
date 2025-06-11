@@ -15,6 +15,7 @@ import dulceCategoryRouter from "./routes/dulceatardecer/categoryRoutes";
 import dulceProductRoutes from "./routes/dulceatardecer/productRoutes";
 import dulceSaleRoutes from "./routes/dulceatardecer/saleRoutes";
 import dulcereportsRoutes from "./routes/dulceatardecer/reportRoutes";
+import dulceExtrasRoutes from "./routes/dulceatardecer/extrasRoutes";
 import { initializeSocketManager } from "./config/websockets";
 
 const app: Express = express();
@@ -57,6 +58,7 @@ app.use("/dulce/api/categories", dulceCategoryRouter);
 app.use("/dulce/api/products", dulceProductRoutes);
 app.use("/dulce/api/sales", dulceSaleRoutes);
 app.use("/dulce/api/reports", dulcereportsRoutes);
+app.use("/dulce/api/extras", dulceExtrasRoutes);
 
 // Ruta para el health check
 app.get("/health", (_req, res) => {

@@ -2,12 +2,14 @@ import { Response } from "express";
 import mongoose from "mongoose";
 import { DAuthRequest } from "../../middlewares/dulceatardecer/auth";
 import Product from "../../models/dulceatardecer/Product";
+import Extra from "../../models/dulceatardecer/Extras";
 import Sale, { SaleStatus } from "../../models/dulceatardecer/Sale";
 
 export const createSale = async (req: DAuthRequest, res: Response) => {
     try {
         const { customer, items, total } = req.body;
 
+        // Validar productos y extras
         for (const item of items) {
             const product = await Product.findById(item.product);
             if (!product || !product.isActive) {
@@ -17,6 +19,30 @@ export const createSale = async (req: DAuthRequest, res: Response) => {
                     data: null,
                     error: null,
                 });
+            }
+
+            // Validar extras si existen
+            if (item.extras && item.extras.length > 0) {
+                for (const extraId of item.extras) {
+                    if (!mongoose.Types.ObjectId.isValid(extraId)) {
+                        return res.status(400).json({
+                            status: 400,
+                            message: `ID de extra inválido: ${extraId}`,
+                            data: null,
+                            error: null,
+                        });
+                    }
+
+                    const extra = await Extra.findById(extraId);
+                    if (!extra || !extra.isActive) {
+                        return res.status(400).json({
+                            status: 400,
+                            message: `Extra con ID ${extraId} no encontrado o no está activo`,
+                            data: null,
+                            error: null,
+                        });
+                    }
+                }
             }
         }
 
@@ -29,7 +55,17 @@ export const createSale = async (req: DAuthRequest, res: Response) => {
             statusUpdatedBy: req.user?.id,
         });
 
-        const populatedSale = await Sale.findById(newSale._id).populate("seller", "username").populate("statusUpdatedBy", "username");
+        const populatedSale = await Sale.findById(newSale._id)
+            .populate("seller", "username")
+            .populate("statusUpdatedBy", "username")
+            .populate({
+                path: "items.product",
+                populate: {
+                    path: "category",
+                    select: "name description",
+                },
+            })
+            .populate("items.extras", "name price");
 
         res.status(201).json({
             status: 201,
@@ -71,9 +107,10 @@ export const getAllSales = async (req: DAuthRequest, res: Response) => {
                 path: "items.product",
                 populate: {
                     path: "category",
-                    select: "name description", // Ajusta según los campos de tu modelo Category
+                    select: "name description",
                 },
-            });
+            })
+            .populate("items.extras", "name price");
 
         res.status(200).json({
             status: 200,
@@ -114,7 +151,8 @@ export const getSaleById = async (req: DAuthRequest, res: Response) => {
                     path: "category",
                     select: "name",
                 },
-            });
+            })
+            .populate("items.extras", "name price");
 
         if (!sale) {
             return res.status(404).json({
@@ -191,7 +229,7 @@ export const updateSaleStatus = async (req: DAuthRequest, res: Response) => {
         sale.statusUpdatedAt = new Date();
         await sale.save();
 
-        const updatedSale = await Sale.findById(saleId).populate("seller", "username").populate("statusUpdatedBy", "username");
+        const updatedSale = await Sale.findById(saleId).populate("seller", "username").populate("statusUpdatedBy", "username").populate("items.extras", "name price");
 
         res.status(200).json({
             status: 200,
@@ -243,6 +281,7 @@ export const updateSale = async (req: DAuthRequest, res: Response) => {
             });
         }
 
+        // Validar productos y extras si se están actualizando
         if (items) {
             for (const item of items) {
                 const product = await Product.findById(item.product);
@@ -254,6 +293,30 @@ export const updateSale = async (req: DAuthRequest, res: Response) => {
                         error: null,
                     });
                 }
+
+                // Validar extras si existen
+                if (item.extras && item.extras.length > 0) {
+                    for (const extraId of item.extras) {
+                        if (!mongoose.Types.ObjectId.isValid(extraId)) {
+                            return res.status(400).json({
+                                status: 400,
+                                message: `ID de extra inválido: ${extraId}`,
+                                data: null,
+                                error: null,
+                            });
+                        }
+
+                        const extra = await Extra.findById(extraId);
+                        if (!extra || !extra.isActive) {
+                            return res.status(400).json({
+                                status: 400,
+                                message: `Extra con ID ${extraId} no encontrado o no está activo`,
+                                data: null,
+                                error: null,
+                            });
+                        }
+                    }
+                }
             }
         }
 
@@ -263,7 +326,17 @@ export const updateSale = async (req: DAuthRequest, res: Response) => {
 
         await sale.save();
 
-        const updatedSale = await Sale.findById(saleId).populate("seller", "username").populate("statusUpdatedBy", "username");
+        const updatedSale = await Sale.findById(saleId)
+            .populate("seller", "username")
+            .populate("statusUpdatedBy", "username")
+            .populate({
+                path: "items.product",
+                populate: {
+                    path: "category",
+                    select: "name",
+                },
+            })
+            .populate("items.extras", "name price");
 
         res.status(200).json({
             status: 200,

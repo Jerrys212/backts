@@ -50,3 +50,12 @@ export interface ISale extends Document {
     createdAt: Date;
     updatedAt: Date;
 }
+
+// Interface para el Extra
+export interface IExtras extends Document {
+    name: string;
+    price: number;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+}
