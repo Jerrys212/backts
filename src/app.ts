@@ -2,6 +2,9 @@ import express, { Express, Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import { createServer } from "http";
+import swaggerUi from "swagger-ui-express";
+import YAML from "yamljs";
+import path from "path";
 import capicAuthRoutes from "./routes/capic/authRoutes";
 import capicUserRouter from "./routes/capic/userRoutes";
 import capicGroupsRouter from "./routes/capic/groupRoutes";
@@ -50,6 +53,10 @@ app.use("/capic/api/groups", capicGroupsRouter);
 app.use("/capic/api/contributions", capicContributionsRoutes);
 app.use("/capic/api/loans", capicLoanRoutes);
 app.use("/capic/api/reports", reportsRoutes);
+
+const swaggerDocument = YAML.load(path.join(__dirname, "./docs/swagger-capic-auth.yaml"));
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Montar las rutas de la API dulce en /dulce/api
 app.use("/dulce/api/auth", dulceAuthRoutes);

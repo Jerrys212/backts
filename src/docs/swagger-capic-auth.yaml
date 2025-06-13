@@ -1,0 +1,3739 @@
+openapi: 3.0.3
+info:
+  title: CAPIC API
+  description: API completa para autenticación, Usuario y aportaciones para el proyecto CAPIC
+  version: 1.0.0
+  contact:
+    name: CAPIC Team
+servers:
+  - url: https://backts-production.up.railway.app/capic/api
+    description: Servidor de producción
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT para autenticación
+
+  schemas:
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: ID único del usuario
+          example: "64f8a123b456c789d012e345"
+        nombre:
+          type: string
+          description: Nombre del usuario
+          example: "Juan"
+        apellidoPaterno:
+          type: string
+          description: Apellido paterno
+          example: "Pérez"
+        apellidoMaterno:
+          type: string
+          description: Apellido materno
+          example: "García"
+        curp:
+          type: string
+          description: CURP del usuario (único)
+          example: "PEGJ900101HDFRRL02"
+        email:
+          type: string
+          format: email
+          description: Correo electrónico (único)
+          example: "juan.perez@email.com"
+        role:
+          type: string
+          enum: [usuario, admin]
+          description: Rol del usuario
+          example: "usuario"
+        activo:
+          type: boolean
+          description: Estado del usuario
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha de creación
+        updatedAt:
+          type: string
+          format: date-time
+          description: Fecha de última actualización
+
+    UserRegistration:
+      type: object
+      required:
+        - nombre
+        - apellidoPaterno
+        - apellidoMaterno
+        - curp
+        - email
+        - password
+      properties:
+        nombre:
+          type: string
+          description: Nombre del usuario
+          example: "Juan"
+        apellidoPaterno:
+          type: string
+          description: Apellido paterno
+          example: "Pérez"
+        apellidoMaterno:
+          type: string
+          description: Apellido materno
+          example: "García"
+        curp:
+          type: string
+          description: CURP del usuario
+          example: "PEGJ900101HDFRRL02"
+        email:
+          type: string
+          format: email
+          description: Correo electrónico
+          example: "juan.perez@email.com"
+        password:
+          type: string
+          minLength: 8
+          description: Contraseña del usuario
+          example: "password123"
+        role:
+          type: string
+          enum: [usuario, admin]
+          description: Rol del usuario (opcional, por defecto 'usuario')
+          example: "usuario"
+
+    UserLogin:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: Correo electrónico
+          example: "juan.perez@email.com"
+        password:
+          type: string
+          description: Contraseña del usuario
+          example: "password123"
+
+    UpdatePassword:
+      type: object
+      required:
+        - newPassword
+      properties:
+        newPassword:
+          type: string
+          minLength: 8
+          description: Nueva contraseña (mínimo 8 caracteres)
+          example: "newpassword123"
+
+    UpdateUserProfile:
+      type: object
+      properties:
+        nombre:
+          type: string
+          description: Nombre del usuario
+          example: "Juan Carlos"
+        apellidoPaterno:
+          type: string
+          description: Apellido paterno
+          example: "López"
+        apellidoMaterno:
+          type: string
+          description: Apellido materno
+          example: "Martínez"
+        email:
+          type: string
+          format: email
+          description: Correo electrónico
+          example: "juan.lopez@email.com"
+
+    UsersListResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "Usuarios obtenidos correctamente"
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        error:
+          type: null
+
+    Contribution:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: ID único de la aportación
+          example: "64f8a123b456c789d012e999"
+        grupo:
+          oneOf:
+            - type: string
+              description: ID del grupo
+              example: "64f8a123b456c789d012e888"
+            - type: object
+              description: Datos del grupo poblados
+              properties:
+                _id:
+                  type: string
+                  example: "64f8a123b456c789d012e888"
+                nombre:
+                  type: string
+                  example: "Grupo Ahorro 2024"
+        miembro:
+          oneOf:
+            - type: string
+              description: ID del miembro
+              example: "64f8a123b456c789d012e345"
+            - type: object
+              description: Datos del miembro poblados
+              properties:
+                _id:
+                  type: string
+                  example: "64f8a123b456c789d012e345"
+                nombre:
+                  type: string
+                  example: "Juan"
+                apellidoPaterno:
+                  type: string
+                  example: "Pérez"
+                apellidoMaterno:
+                  type: string
+                  example: "García"
+                email:
+                  type: string
+                  example: "juan.perez@email.com"
+        cantidad:
+          type: number
+          description: Monto de la aportación
+          example: 500
+        semana:
+          type: number
+          description: Número de semana de la aportación
+          example: 1
+        fechaAportacion:
+          type: string
+          format: date-time
+          description: Fecha cuando se realizó la aportación
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha de creación del registro
+        updatedAt:
+          type: string
+          format: date-time
+          description: Fecha de última actualización
+
+    CreateContribution:
+      type: object
+      required:
+        - grupo
+        - cantidad
+        - semana
+        - miembro
+      properties:
+        grupo:
+          type: string
+          description: ID del grupo
+          example: "64f8a123b456c789d012e888"
+        miembro:
+          type: string
+          description: ID del miembro que realiza la aportación
+          example: "64f8a123b456c789d012e345"
+        cantidad:
+          type: number
+          description: Monto de la aportación
+          example: 500
+        semana:
+          type: number
+          description: Número de semana (1-N según duración del grupo)
+          example: 1
+
+    ContributionStats:
+      type: object
+      properties:
+        totalContributions:
+          type: integer
+          description: Total de aportaciones realizadas
+          example: 8
+        totalAmount:
+          type: number
+          description: Monto total aportado
+          example: 4000
+        expectedContributions:
+          type: integer
+          description: Total de aportaciones esperadas (semanas del grupo)
+          example: 10
+        participationPercentage:
+          type: number
+          description: Porcentaje de participación
+          example: 80.0
+        isEligibleForLoan:
+          type: boolean
+          description: Si es elegible para préstamo (>=80% participación)
+          example: true
+
+    ContributionsListResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "Aportaciones obtenidas correctamente"
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Contribution'
+        error:
+          type: null
+
+    ContributionStatsResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "Estadísticas obtenidas correctamente"
+        data:
+          $ref: '#/components/schemas/ContributionStats'
+        error:
+          type: null
+
+    Group:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: ID único del grupo
+          example: "64f8a123b456c789d012e888"
+        nombre:
+          type: string
+          description: Nombre único del grupo
+          example: "Grupo Ahorro 2024"
+        semanas:
+          type: number
+          description: Número total de semanas del grupo
+          example: 10
+        cantidadSemanal:
+          type: number
+          description: Cantidad de aportación semanal requerida
+          example: 500
+        limiteUsuarios:
+          type: number
+          description: Límite máximo de usuarios en el grupo
+          example: 20
+        miembros:
+          type: array
+          description: Lista de IDs de miembros o datos poblados
+          items:
+            oneOf:
+              - type: string
+                description: ID del miembro
+                example: "64f8a123b456c789d012e345"
+              - type: object
+                description: Datos del miembro poblados
+                properties:
+                  _id:
+                    type: string
+                    example: "64f8a123b456c789d012e345"
+                  nombre:
+                    type: string
+                    example: "Juan"
+                  apellidoPaterno:
+                    type: string
+                    example: "Pérez"
+                  apellidoMaterno:
+                    type: string
+                    example: "García"
+                  email:
+                    type: string
+                    example: "juan.perez@email.com"
+        creador:
+          oneOf:
+            - type: string
+              description: ID del creador
+              example: "64f8a123b456c789d012e345"
+            - type: object
+              description: Datos del creador poblados
+              properties:
+                _id:
+                  type: string
+                  example: "64f8a123b456c789d012e345"
+                nombre:
+                  type: string
+                  example: "María"
+                apellidoPaterno:
+                  type: string
+                  example: "López"
+                apellidoMaterno:
+                  type: string
+                  example: "Martínez"
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha de creación del grupo
+        updatedAt:
+          type: string
+          format: date-time
+          description: Fecha de última actualización
+
+    CreateGroup:
+      type: object
+      required:
+        - nombre
+        - semanas
+        - cantidadSemanal
+        - limiteUsuarios
+      properties:
+        nombre:
+          type: string
+          description: Nombre único del grupo
+          example: "Grupo Ahorro 2024"
+        semanas:
+          type: number
+          description: Número total de semanas del grupo
+          minimum: 1
+          example: 10
+        cantidadSemanal:
+          type: number
+          description: Cantidad de aportación semanal requerida
+          minimum: 1
+          example: 500
+        limiteUsuarios:
+          type: number
+          description: Límite máximo de usuarios en el grupo
+          minimum: 2
+          example: 20
+
+    UpdateGroup:
+      type: object
+      properties:
+        nombre:
+          type: string
+          description: Nombre único del grupo
+          example: "Grupo Ahorro Actualizado 2024"
+        semanas:
+          type: number
+          description: Número total de semanas del grupo
+          minimum: 1
+          example: 12
+        cantidadSemanal:
+          type: number
+          description: Cantidad de aportación semanal requerida
+          minimum: 1
+          example: 600
+        limiteUsuarios:
+          type: number
+          description: Límite máximo de usuarios en el grupo
+          minimum: 2
+          example: 25
+
+    AddMemberToGroup:
+      type: object
+      required:
+        - userId
+      properties:
+        userId:
+          type: string
+          description: ID del usuario a agregar al grupo
+          example: "64f8a123b456c789d012e345"
+
+    GroupsListResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "Grupos obtenidos correctamente"
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Group'
+        error:
+          type: null
+
+    GroupMembersResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "Miembros obtenidos correctamente"
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                example: "64f8a123b456c789d012e345"
+              nombre:
+                type: string
+                example: "Juan"
+              apellidoPaterno:
+                type: string
+                example: "Pérez"
+              apellidoMaterno:
+                type: string
+                example: "García"
+        error:
+          type: null
+
+          Loan:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: ID único del préstamo
+          example: "64f8a123b456c789d012e777"
+        miembro:
+          oneOf:
+            - type: string
+              description: ID del miembro
+              example: "64f8a123b456c789d012e345"
+            - type: object
+              description: Datos del miembro poblados
+              properties:
+                _id:
+                  type: string
+                  example: "64f8a123b456c789d012e345"
+                nombre:
+                  type: string
+                  example: "Juan"
+                apellidoPaterno:
+                  type: string
+                  example: "Pérez"
+                apellidoMaterno:
+                  type: string
+                  example: "García"
+                email:
+                  type: string
+                  example: "juan.perez@email.com"
+        cantidad:
+          type: number
+          description: Monto solicitado del préstamo
+          example: 5000
+        semanas:
+          type: number
+          description: Número de semanas para pagar el préstamo
+          minimum: 4
+          maximum: 12
+          example: 8
+        cantidadSemanal:
+          type: number
+          description: Cantidad a pagar cada semana
+          example: 656.25
+        interes:
+          type: number
+          description: Porcentaje de interés aplicado
+          example: 5
+        totalPagar:
+          type: number
+          description: Monto total a pagar incluyendo interés
+          example: 5250
+        pagos:
+          type: array
+          description: Registro de pagos semanales
+          items:
+            type: object
+            properties:
+              semana:
+                type: number
+                example: 1
+              pagado:
+                type: boolean
+                example: true
+              fechaPago:
+                type: string
+                format: date-time
+                nullable: true
+                example: "2024-01-15T10:30:00Z"
+              cantidad:
+                type: number
+                example: 656.25
+        estado:
+          type: string
+          enum: [pendiente, aprobado, rechazado, pagado]
+          description: Estado actual del préstamo
+          example: "aprobado"
+        resumen:
+          type: object
+          description: Resumen calculado del préstamo (solo en detalle)
+          properties:
+            pagadoHastaAhora:
+              type: number
+              example: 1312.5
+            semanasRestantes:
+              type: number
+              example: 6
+            montoRestante:
+              type: number
+              example: 3937.5
+            progresoPago:
+              type: number
+              example: 25
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RequestLoan:
+      type: object
+      required:
+        - cantidad
+        - semanas
+        - miembro
+      properties:
+        cantidad:
+          type: number
+          description: Monto solicitado
+          minimum: 1
+          example: 5000
+        semanas:
+          type: number
+          description: Número de semanas para pagar (4-12)
+          minimum: 4
+          maximum: 12
+          example: 8
+        miembro:
+          type: string
+          description: ID del miembro que solicita el préstamo
+          example: "64f8a123b456c789d012e345"
+
+    UpdateLoanStatus:
+      type: object
+      required:
+        - estado
+      properties:
+        estado:
+          type: string
+          enum: [aprobado, rechazado]
+          description: Nuevo estado del préstamo
+          example: "aprobado"
+
+    RegisterPayment:
+      type: object
+      required:
+        - semana
+      properties:
+        semana:
+          type: number
+          description: Número de semana del pago
+          minimum: 1
+          example: 3
+
+    SystemStats:
+      type: object
+      properties:
+        usuarios:
+          type: object
+          properties:
+            total:
+              type: number
+              example: 150
+        grupos:
+          type: object
+          properties:
+            total:
+              type: number
+              example: 25
+            promedioSemanas:
+              type: number
+              example: 10
+            promedioCantidadSemanal:
+              type: number
+              example: 450
+        aportaciones:
+          type: object
+          properties:
+            total:
+              type: number
+              example: 1200
+            montoTotal:
+              type: number
+              example: 540000
+        prestamos:
+          type: object
+          properties:
+            total:
+              type: number
+              example: 45
+            montoTotal:
+              type: number
+              example: 225000
+            porEstado:
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  cantidad:
+                    type: number
+                  monto:
+                    type: number
+              example:
+                pendiente: { cantidad: 5, monto: 25000 }
+                aprobado: { cantidad: 30, monto: 150000 }
+                pagado: { cantidad: 10, monto: 50000 }
+
+    MonthlyTrends:
+      type: object
+      properties:
+        año:
+          type: number
+          example: 2024
+        tendencias:
+          type: array
+          items:
+            type: object
+            properties:
+              mes:
+                type: string
+                example: "Enero"
+              numeroMes:
+                type: number
+                example: 1
+              cantidadAportaciones:
+                type: number
+                example: 45
+              montoTotal:
+                type: number
+                example: 22500
+
+    UserRanking:
+      type: array
+      items:
+        type: object
+        properties:
+          _id:
+            type: string
+            example: "64f8a123b456c789d012e345"
+          nombre:
+            type: string
+            example: "Juan Pérez"
+          totalAportaciones:
+            type: number
+            example: 8
+          montoTotal:
+            type: number
+            example: 4000
+
+    LoanStats:
+      type: object
+      properties:
+        estadisticasDuracion:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: number
+                description: Número de semanas
+                example: 8
+              cantidad:
+                type: number
+                description: Cantidad de préstamos con esa duración
+                example: 12
+              montoPromedio:
+                type: number
+                description: Monto promedio de préstamos
+                example: 5500
+        tasaAprobacion:
+          type: array
+          items:
+            type: object
+            properties:
+              estado:
+                type: string
+                example: "aprobado"
+              cantidad:
+                type: number
+                example: 30
+              porcentaje:
+                type: number
+                example: 66.67
+        tiempoPromedioPago:
+          type: number
+          description: Tiempo promedio en días
+          example: 45.5
+        prestamosPagados:
+          type: number
+          example: 10
+
+    GroupPerformance:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+            example: "64f8a123b456c789d012e888"
+          nombre:
+            type: string
+            example: "Grupo Ahorro 2024"
+          miembros:
+            type: number
+            example: 15
+          cantidadSemanal:
+            type: number
+            example: 500
+          semanas:
+            type: number
+            example: 10
+          contribucionesRealizadas:
+            type: number
+            example: 120
+          contribucionesEsperadas:
+            type: number
+            example: 150
+          tasaCumplimiento:
+            type: number
+            example: 80.0
+          prestamos:
+            type: number
+            example: 3
+          montoPrestamos:
+            type: number
+            example: 15000
+
+    FinancialProjections:
+      type: object
+      properties:
+        tendenciaAportaciones:
+          type: array
+          items:
+            type: object
+            properties:
+              periodo:
+                type: string
+                example: "10/2024"
+              monto:
+                type: number
+                example: 25000
+        tendenciaPrestamos:
+          type: array
+          items:
+            type: object
+            properties:
+              periodo:
+                type: string
+                example: "10/2024"
+              monto:
+                type: number
+                example: 15000
+        proyecciones:
+          type: array
+          items:
+            type: object
+            properties:
+              mes:
+                type: string
+                example: "1/2025"
+              aportacionesProyectadas:
+                type: number
+                example: 28000
+              prestamosProyectados:
+                type: number
+                example: 16500
+              balanceProyectado:
+                type: number
+                example: 11500
+
+    RiskAssessment:
+      type: object
+      properties:
+        totalPrestamosActivos:
+          type: number
+          example: 25
+        prestamosConRiesgo:
+          type: number
+          example: 5
+        porcentajeEnRiesgo:
+          type: number
+          example: 20.0
+        evaluacionRiesgos:
+          type: array
+          items:
+            type: object
+            properties:
+              prestamoId:
+                type: string
+                example: "64f8a123b456c789d012e777"
+              miembro:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "64f8a123b456c789d012e345"
+                  nombre:
+                    type: string
+                    example: "Juan Pérez"
+                  email:
+                    type: string
+                    example: "juan.perez@email.com"
+              monto:
+                type: number
+                example: 5000
+              semanasAtrasadas:
+                type: number
+                example: 2
+              ultimaSemanaAtrasada:
+                type: number
+                example: 3
+              nivelRiesgo:
+                type: string
+                enum: [bajo, medio, alto]
+                example: "medio"
+
+    LoansListResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "Préstamos obtenidos correctamente"
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Loan'
+        error:
+          type: null
+
+    LoginResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "Inicio de sesión exitoso"
+        data:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: "64f8a123b456c789d012e345"
+            nombre:
+              type: string
+              example: "Juan"
+            apellidoPaterno:
+              type: string
+              example: "Pérez"
+            apellidoMaterno:
+              type: string
+              example: "García"
+            curp:
+              type: string
+              example: "PEGJ900101HDFRRL02"
+            email:
+              type: string
+              example: "juan.perez@email.com"
+            role:
+              type: string
+              example: "usuario"
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+            token:
+              type: string
+              description: Token JWT para autenticación
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        error:
+          type: null
+
+    ApiResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          description: Código de estado HTTP
+        message:
+          type: string
+          description: Mensaje descriptivo
+        data:
+          description: Datos de la respuesta (puede ser null)
+        error:
+          description: Información del error (puede ser null)
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          description: Código de estado HTTP de error
+        message:
+          type: string
+          description: Mensaje del error
+        data:
+          type: null
+        error:
+          type: string
+          description: Detalle del error
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Autenticación
+      summary: Registrar nuevo usuario
+      description: Crea una nueva cuenta de usuario en el sistema
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+      responses:
+        '201':
+          description: Usuario registrado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 201
+                  message:
+                    type: string
+                    example: "Usuario creado correctamente"
+                  data:
+                    $ref: '#/components/schemas/User'
+                  error:
+                    type: null
+        '400':
+          description: Datos inválidos o usuario ya existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /groups:
+    get:
+      tags:
+        - Grupos
+      summary: Obtener lista de grupos
+      description: Obtiene todos los grupos disponibles
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Grupos obtenidos correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupsListResponse'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No autorizado, token inválido"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Grupos
+      summary: Crear nuevo grupo
+      description: Crea un nuevo grupo de ahorro (solo administradores)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGroup'
+      responses:
+        '201':
+          description: Grupo creado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 201
+                  message:
+                    type: string
+                    example: "Grupo creado correctamente"
+                  data:
+                    $ref: '#/components/schemas/Group'
+                  error:
+                    type: null
+        '400':
+          description: Datos inválidos o grupo ya existe
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "Ya existe un grupo con ese nombre"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "No autorizado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '403':
+          description: Sin permisos de administrador
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No tiene permisos para realizar esta acción"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /groups/{id}:
+    get:
+      tags:
+        - Grupos
+      summary: Obtener grupo por ID
+      description: Obtiene los detalles de un grupo específico
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del grupo
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e888"
+      responses:
+        '200':
+          description: Grupo obtenido correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Grupo obtenido correctamente"
+                  data:
+                    $ref: '#/components/schemas/Group'
+                  error:
+                    type: null
+        '404':
+          description: Grupo no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Grupo no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Grupos
+      summary: Actualizar grupo
+      description: Actualiza los datos de un grupo (solo creador del grupo)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del grupo a actualizar
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e888"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGroup'
+      responses:
+        '200':
+          description: Grupo actualizado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Grupo actualizado correctamente"
+                  data:
+                    $ref: '#/components/schemas/Group'
+                  error:
+                    type: null
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                existing_name:
+                  summary: Nombre ya existe
+                  value:
+                    status: 400
+                    message: "Ya existe un grupo con ese nombre"
+                    data: null
+                    error: null
+                has_contributions:
+                  summary: Grupo con aportaciones
+                  value:
+                    status: 400
+                    message: "No se puede actualizar el grupo porque ya tiene aportaciones registradas"
+                    data: null
+                    error: null
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "No autorizado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '403':
+          description: Sin permisos para actualizar
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "No tienes permisos para actualizar este grupo"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '404':
+          description: Grupo no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Grupo no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Grupos
+      summary: Eliminar grupo
+      description: Elimina un grupo (solo si no tiene aportaciones registradas, solo administradores)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del grupo a eliminar
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e888"
+      responses:
+        '200':
+          description: Grupo eliminado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Grupo eliminado correctamente"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '400':
+          description: Grupo con aportaciones registradas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "No se puede eliminar el grupo porque ya tiene aportaciones registradas"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "No autorizado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '403':
+          description: Sin permisos de administrador
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No tiene permisos para realizar esta acción"
+        '404':
+          description: Grupo no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Grupo no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /groups/{id}/members:
+    get:
+      tags:
+        - Grupos
+      summary: Obtener miembros del grupo
+      description: Obtiene la lista de miembros de un grupo específico
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del grupo
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e888"
+      responses:
+        '200':
+          description: Miembros obtenidos correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupMembersResponse'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "No autorizado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '404':
+          description: Grupo no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Grupo no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Grupos
+      summary: Agregar miembro al grupo
+      description: Agrega un nuevo miembro a un grupo específico (solo administradores)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del grupo
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e888"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMemberToGroup'
+      responses:
+        '200':
+          description: Miembro agregado correctamente al grupo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Miembro agregado correctamente al grupo"
+                  data:
+                    $ref: '#/components/schemas/Group'
+                  error:
+                    type: null
+        '400':
+          description: Error en la operación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                limit_reached:
+                  summary: Límite alcanzado
+                  value:
+                    status: 400
+                    message: "El grupo ya alcanzó su límite de miembros"
+                    data: null
+                    error: null
+                already_member:
+                  summary: Ya es miembro
+                  value:
+                    status: 400
+                    message: "El usuario ya es miembro de este grupo"
+                    data: null
+                    error: null
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "No autorizado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '403':
+          description: Sin permisos de administrador
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No tiene permisos para realizar esta acción"
+        '404':
+          description: Grupo o usuario no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Grupo no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /groups/{id}/members/{userId}:
+    delete:
+      tags:
+        - Grupos
+      summary: Eliminar miembro del grupo
+      description: Elimina un miembro de un grupo (solo si no tiene aportaciones, solo administradores)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del grupo
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e888"
+        - name: userId
+          in: path
+          required: true
+          description: ID del usuario a eliminar
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e345"
+      responses:
+        '200':
+          description: Miembro eliminado correctamente del grupo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Miembro eliminado correctamente del grupo"
+                  data:
+                    $ref: '#/components/schemas/Group'
+                  error:
+                    type: null
+        '400':
+          description: Error en la operación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_member:
+                  summary: No es miembro
+                  value:
+                    status: 400
+                    message: "El usuario no es miembro de este grupo"
+                    data: null
+                    error: null
+                has_contributions:
+                  summary: Tiene aportaciones
+                  value:
+                    status: 400
+                    message: "No se puede eliminar al miembro porque ya ha realizado aportaciones en este grupo"
+                    data: null
+                    error: null
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "No autorizado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '403':
+          description: Sin permisos de administrador
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No tiene permisos para realizar esta acción"
+        '404':
+          description: Grupo no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Grupo no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /contributions:
+    get:
+      tags:
+        - Aportaciones
+      summary: Obtener todas las aportaciones
+      description: Obtiene la lista completa de aportaciones (requiere autenticación)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Aportaciones obtenidas correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContributionsListResponse'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No autorizado, token inválido"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Aportaciones
+      summary: Crear nueva aportación
+      description: Crea una nueva aportación para un grupo específico
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContribution'
+      responses:
+        '201':
+          description: Aportación creada correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 201
+                  message:
+                    type: string
+                    example: "Aportación creada correctamente"
+                  data:
+                    $ref: '#/components/schemas/Contribution'
+                  error:
+                    type: null
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_week:
+                  summary: Semana inválida
+                  value:
+                    status: 400
+                    message: "La semana 15 no es válida. El grupo tiene 10 semanas en total"
+                    data: null
+                    error: null
+                existing_contribution:
+                  summary: Aportación ya existe
+                  value:
+                    status: 400
+                    message: "Ya has realizado una aportación para esta semana"
+                    data: null
+                    error: null
+                invalid_amount:
+                  summary: Cantidad incorrecta
+                  value:
+                    status: 400
+                    message: "La cantidad de aportación debe ser de 500"
+                    data: null
+                    error: null
+        '403':
+          description: Sin permisos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "No eres miembro de este grupo"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '404':
+          description: Grupo no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Grupo no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /contributions/{id}:
+    get:
+      tags:
+        - Aportaciones
+      summary: Obtener aportación por ID
+      description: Obtiene los detalles de una aportación específica
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de la aportación
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e999"
+      responses:
+        '200':
+          description: Aportación obtenida correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Aportación obtenida correctamente"
+                  data:
+                    $ref: '#/components/schemas/Contribution'
+                  error:
+                    type: null
+        '400':
+          description: ID inválido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "ID de aportación inválido"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "No autorizado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '404':
+          description: Aportación no encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Aportación no encontrada"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Aportaciones
+      summary: Eliminar aportación
+      description: Elimina una aportación (solo la más reciente del usuario)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de la aportación a eliminar
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e999"
+      responses:
+        '200':
+          description: Aportación eliminada correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Aportación eliminada correctamente"
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: "64f8a123b456c789d012e999"
+                  error:
+                    type: null
+        '400':
+          description: ID inválido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "ID de aportación inválido"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '403':
+          description: Sin permisos para eliminar
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "Solo puedes eliminar tu aportación más reciente"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '404':
+          description: Aportación no encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Aportación no encontrada"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /contributions/user:
+    get:
+      tags:
+        - Aportaciones
+      summary: Obtener aportaciones del usuario
+      description: Obtiene todas las aportaciones del usuario autenticado
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Aportaciones del usuario obtenidas correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContributionsListResponse'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No autorizado, token inválido"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /contributions/group/{groupId}:
+    get:
+      tags:
+        - Aportaciones
+      summary: Obtener aportaciones de un grupo
+      description: Obtiene todas las aportaciones de un grupo específico (solo miembros del grupo o admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          description: ID del grupo
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e888"
+      responses:
+        '200':
+          description: Aportaciones del grupo obtenidas correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Aportaciones del grupo obtenidas correctamente"
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Contribution'
+                  error:
+                    type: null
+        '403':
+          description: Sin permisos para ver aportaciones del grupo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "No tienes permisos para ver las aportaciones de este grupo"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '404':
+          description: Grupo no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Grupo no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /contributions/stats/{groupId}:
+    get:
+      tags:
+        - Aportaciones
+      summary: Obtener estadísticas de aportaciones del usuario
+      description: Obtiene las estadísticas de participación del usuario en un grupo específico
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          description: ID del grupo
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e888"
+      responses:
+        '200':
+          description: Estadísticas obtenidas correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContributionStatsResponse'
+        '403':
+          description: No eres miembro del grupo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "No eres miembro de este grupo"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '404':
+          description: Grupo no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Grupo no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users:
+    get:
+      tags:
+        - Usuario
+      summary: Obtener lista de usuarios activos
+      description: Obtiene todos los usuarios activos del sistema (solo administradores)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lista de usuarios obtenida correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersListResponse'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No autorizado, token inválido"
+        '403':
+          description: Sin permisos de administrador
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No tiene permisos para realizar esta acción"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{id}:
+    get:
+      tags:
+        - Usuario
+      summary: Obtener usuario por ID
+      description: Obtiene los datos de un usuario específico por su ID (solo administradores)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del usuario
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e345"
+      responses:
+        '200':
+          description: Usuario obtenido correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Usuario obtenido correctamente"
+                  data:
+                    $ref: '#/components/schemas/User'
+                  error:
+                    type: null
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No autorizado, token inválido"
+        '403':
+          description: Sin permisos de administrador
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No tiene permisos para realizar esta acción"
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Usuario no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Usuario
+      summary: Eliminar usuario (desactivar)
+      description: Desactiva un usuario específico marcándolo como inactivo (solo administradores)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del usuario a eliminar
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e345"
+      responses:
+        '200':
+          description: Usuario eliminado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Usuario eliminado correctamente"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No autorizado, token inválido"
+        '403':
+          description: Sin permisos de administrador
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No tiene permisos para realizar esta acción"
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Usuario no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/profile/{id}:
+    put:
+      tags:
+        - Usuario
+      summary: Actualizar perfil de usuario
+      description: Actualiza los datos del perfil de un usuario específico
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del usuario a actualizar
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e345"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserProfile'
+      responses:
+        '200':
+          description: Perfil actualizado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Perfil actualizado correctamente"
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                        example: "64f8a123b456c789d012e345"
+                      nombre:
+                        type: string
+                        example: "Juan Carlos"
+                      apellidoPaterno:
+                        type: string
+                        example: "López"
+                      apellidoMaterno:
+                        type: string
+                        example: "Martínez"
+                      email:
+                        type: string
+                        example: "juan.lopez@email.com"
+                      role:
+                        type: string
+                        example: "usuario"
+                  error:
+                    type: null
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No autorizado, token inválido"
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Usuario no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                email_exists:
+                  summary: Email ya registrado
+                  value:
+                    status: 400
+                    message: "El correo electrónico ya está registrado"
+                    data: null
+                    error: null
+                curp_exists:
+                  summary: CURP ya registrada
+                  value:
+                    status: 400
+                    message: "La CURP ya está registrada"
+                    data: null
+                    error: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Autenticación
+      summary: Iniciar sesión
+      description: Autentica un usuario y devuelve un token JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        '200':
+          description: Inicio de sesión exitoso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Credenciales incorrectas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "Correo o contraseña incorrectos"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/profile:
+    get:
+      tags:
+        - Autenticación
+      summary: Obtener perfil del usuario
+      description: Obtiene la información del perfil del usuario autenticado
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Perfil obtenido correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Perfil obtenido correctamente"
+                  data:
+                    $ref: '#/components/schemas/User'
+                  error:
+                    type: null
+        '401':
+          description: No autorizado - Token inválido o faltante
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No autorizado, token inválido"
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Usuario no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/update-password:
+    post:
+      tags:
+        - Autenticación
+      summary: Actualizar contraseña
+      description: Actualiza la contraseña del usuario autenticado
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePassword'
+      responses:
+        '200':
+          description: Contraseña actualizada correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Contraseña actualizada correctamente"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_password:
+                  summary: Contraseña faltante
+                  value:
+                    status: 400
+                    message: "Datos incompletos"
+                    data: null
+                    error: "Se requiere la nueva contraseña"
+                invalid_length:
+                  summary: Contraseña muy corta
+                  value:
+                    status: 400
+                    message: "Contraseña inválida"
+                    data: null
+                    error: "La nueva contraseña debe tener al menos 8 caracteres"
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No autorizado, token inválido"
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Usuario no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: null
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /loans:
+    get:
+      tags:
+        - Préstamos
+      summary: Obtener lista de préstamos
+      description: Obtiene todos los préstamos del sistema
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Préstamos obtenidos correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoansListResponse'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "No autorizado"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Préstamos
+      summary: Solicitar préstamo
+      description: Crea una nueva solicitud de préstamo
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestLoan'
+      responses:
+        '201':
+          description: Préstamo solicitado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 201
+                  message:
+                    type: string
+                    example: "Préstamo solicitado correctamente"
+                  data:
+                    $ref: '#/components/schemas/Loan'
+                  error:
+                    type: null
+        '400':
+          description: Error en los datos o validaciones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                duplicate_request:
+                  summary: Solicitud duplicada
+                  value:
+                    status: 400
+                    message: "Ya solicitaste un préstamo"
+                    data: null
+                    error: "Solicitud duplicada"
+                invalid_weeks:
+                  summary: Semanas inválidas
+                  value:
+                    status: 400
+                    message: "Las semanas de pago deben estar entre 4 y 12"
+                    data: null
+                    error: "Rango inválido"
+                no_group:
+                  summary: Sin grupo
+                  value:
+                    status: 400
+                    message: "No perteneces a ningún grupo"
+                    data: null
+                    error: "Sin grupo"
+                insufficient_participation:
+                  summary: Participación insuficiente
+                  value:
+                    status: 400
+                    message: "No cumples con el requisito mínimo de participación (80%) en ningún grupo"
+                    data: null
+                    error: "Participación insuficiente"
+                amount_exceeded:
+                  summary: Monto excedido
+                  value:
+                    status: 400
+                    message: "El monto solicitado excede el límite permitido. Monto máximo: 10000"
+                    data: null
+                    error: "Monto excedido"
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Usuario no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "Usuario inválido"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /loans/{id}:
+    get:
+      tags:
+        - Préstamos
+      summary: Obtener préstamo por ID
+      description: Obtiene los detalles completos de un préstamo específico
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del préstamo
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e777"
+      responses:
+        '200':
+          description: Detalles del préstamo obtenidos correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Detalles del préstamo obtenidos correctamente"
+                  data:
+                    $ref: '#/components/schemas/Loan'
+                  error:
+                    type: null
+        '400':
+          description: ID inválido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "ID de préstamo inválido"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "ID inválido"
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "No autorizado"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '404':
+          description: Préstamo no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Préstamo no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "Préstamo no existe"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /loans/{id}/status:
+    put:
+      tags:
+        - Préstamos
+      summary: Actualizar estado del préstamo
+      description: Aprueba o rechaza una solicitud de préstamo (solo administradores)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del préstamo
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e777"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLoanStatus'
+      responses:
+        '200':
+          description: Estado del préstamo actualizado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Préstamo aprobado correctamente"
+                  data:
+                    $ref: '#/components/schemas/Loan'
+                  error:
+                    type: null
+        '400':
+          description: Estado inválido o préstamo no editable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_state:
+                  summary: Estado inválido
+                  value:
+                    status: 400
+                    message: 'Estado no válido. Debe ser "aprobado" o "rechazado"'
+                    data: null
+                    error: "Estado inválido"
+                not_pending:
+                  summary: No pendiente
+                  value:
+                    status: 400
+                    message: "No se puede actualizar el estado. El préstamo ya está aprobado"
+                    data: null
+                    error: "Estado no editable"
+        '403':
+          description: Sin permisos de administrador
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "No tienes permisos para realizar esta acción"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "No autorizado"
+        '404':
+          description: Préstamo no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Préstamo no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "ID inválido"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /loans/{id}/week:
+    post:
+      tags:
+        - Préstamos
+      summary: Registrar pago semanal
+      description: Registra el pago de una semana específica del préstamo (solo administradores)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del préstamo
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e777"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterPayment'
+      responses:
+        '200':
+          description: Pago registrado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Pago de semana 3 registrado correctamente"
+                  data:
+                    $ref: '#/components/schemas/Loan'
+                  error:
+                    type: null
+        '400':
+          description: Error en el registro del pago
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                loan_not_approved:
+                  summary: Préstamo no aprobado
+                  value:
+                    status: 400
+                    message: "No se puede registrar el pago. El préstamo está pendiente"
+                    data: null
+                    error: "Estado inválido"
+                invalid_week:
+                  summary: Semana inválida
+                  value:
+                    status: 400
+                    message: "Número de semana inválido. Debe estar entre 1 y 8"
+                    data: null
+                    error: "Semana inválida"
+                already_paid:
+                  summary: Ya pagado
+                  value:
+                    status: 400
+                    message: "Esta semana ya está pagada"
+                    data: null
+                    error: "Pago duplicado"
+        '403':
+          description: Sin permisos de administrador
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "No tienes permisos para realizar esta acción"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "No autorizado"
+        '404':
+          description: Préstamo no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Préstamo no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "ID inválido"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /loans/{id}/pay:
+    put:
+      tags:
+        - Préstamos
+      summary: Marcar préstamo como pagado
+      description: Marca un préstamo completo como pagado (solo administradores)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del préstamo
+          schema:
+            type: string
+            example: "64f8a123b456c789d012e777"
+      responses:
+        '200':
+          description: Préstamo marcado como pagado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Préstamo marcado como pagado correctamente"
+                  data:
+                    $ref: '#/components/schemas/Loan'
+                  error:
+                    type: null
+        '400':
+          description: Préstamo no se puede marcar como pagado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "No se puede marcar como pagado. El préstamo está pendiente"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "Estado inválido"
+        '403':
+          description: Sin permisos de administrador
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "No tienes permisos para realizar esta acción"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "No autorizado"
+        '404':
+          description: Préstamo no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Préstamo no encontrado"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "ID inválido"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /loans/user:
+    get:
+      tags:
+        - Préstamos
+      summary: Obtener préstamos del usuario
+      description: Obtiene todos los préstamos del usuario autenticado
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Préstamos del usuario obtenidos correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Préstamos del usuario obtenidos correctamente"
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Loan'
+                  error:
+                    type: null
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "No autorizado"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /reports/system-stats:
+    get:
+      tags:
+        - Reportes
+      summary: Estadísticas generales del sistema
+      description: Obtiene estadísticas generales de usuarios, grupos, aportaciones y préstamos
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Estadísticas obtenidas correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Estadísticas del sistema obtenidas correctamente"
+                  data:
+                    $ref: '#/components/schemas/SystemStats'
+                  error:
+                    type: null
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "No autorizado"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reports/monthly-trends:
+    get:
+      tags:
+        - Reportes
+      summary: Tendencias mensuales de aportaciones
+      description: Obtiene las tendencias de aportaciones por mes
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: year
+          in: query
+          required: false
+          description: Año para obtener tendencias (por defecto año actual)
+          schema:
+            type: integer
+            example: 2024
+      responses:
+        '200':
+          description: Tendencias mensuales obtenidas correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Tendencias mensuales de aportaciones obtenidas correctamente"
+                  data:
+                    $ref: '#/components/schemas/MonthlyTrends'
+                  error:
+                    type: null
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "No autorizado"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reports/user-ranking:
+    get:
+      tags:
+        - Reportes
+      summary: Ranking de usuarios por aportaciones
+      description: Obtiene el ranking de usuarios ordenados por monto total de aportaciones
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Límite de usuarios a mostrar (por defecto 10)
+          schema:
+            type: integer
+            example: 10
+      responses:
+        '200':
+          description: Ranking obtenido correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Ranking de usuarios por aportaciones obtenido correctamente"
+                  data:
+                    $ref: '#/components/schemas/UserRanking'
+                  error:
+                    type: null
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "No autorizado"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reports/loan-stats:
+    get:
+      tags:
+        - Reportes
+      summary: Estadísticas de préstamos
+      description: Obtiene estadísticas detalladas sobre préstamos y tasas de aprobación
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Estadísticas de préstamos obtenidas correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Estadísticas de préstamos obtenidas correctamente"
+                  data:
+                    $ref: '#/components/schemas/LoanStats'
+                  error:
+                    type: null
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "No autorizado"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reports/group-performance:
+    get:
+      tags:
+        - Reportes
+      summary: Reporte de rendimiento de grupos
+      description: Obtiene el reporte de rendimiento y cumplimiento de todos los grupos
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Reporte de rendimiento obtenido correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Reporte de rendimiento de grupos obtenido correctamente"
+                  data:
+                    $ref: '#/components/schemas/GroupPerformance'
+                  error:
+                    type: null
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "No autorizado"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reports/financial-projections:
+    get:
+      tags:
+        - Reportes
+      summary: Proyecciones financieras
+      description: Obtiene proyecciones financieras basadas en tendencias actuales (solo administradores)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Proyecciones financieras obtenidas correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Proyecciones financieras obtenidas correctamente"
+                  data:
+                    $ref: '#/components/schemas/FinancialProjections'
+                  error:
+                    type: null
+        '403':
+          description: Sin permisos de administrador
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "No tienes permisos para acceder a esta información"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "Acceso denegado"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reports/risk-assessment:
+    get:
+      tags:
+        - Reportes
+      summary: Evaluación de riesgos
+      description: Obtiene reporte de usuarios con riesgo de incumplimiento (solo administradores)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Reporte de evaluación de riesgos obtenido correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Reporte de evaluación de riesgos obtenido correctamente"
+                  data:
+                    $ref: '#/components/schemas/RiskAssessment'
+                  error:
+                    type: null
+        '403':
+          description: Sin permisos de administrador
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "No tienes permisos para acceder a esta información"
+                  data:
+                    type: null
+                  error:
+                    type: string
+                    example: "Acceso denegado"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+tags:
+  - name: Autenticación
+    description: Endpoints para registro e inicio de sesión
+  - name: Usuario
+    description: Endpoints para gestión del perfil de usuario
+  - name: Usuario
+    description: Endpoints para administradores - gestión completa de usuarios
+  - name: Aportaciones
+    description: Endpoints para gestión de aportaciones y estadísticas
+  - name: Grupos
+    description: Endpoints para gestión de grupos de ahorro
+  - name: Préstamos
+    description: Endpoints para gestión de préstamos y pagos
+  - name: Reportes
+    description: Endpoints para reportes y análisis del sistema
