@@ -96,7 +96,7 @@ export const createCategory = async (req: DAuthRequest, res: Response) => {
 
         broadcastToAll("newCategory", newCategory);
 
-        res.status(201).json({
+        return res.status(201).json({
             status: 201,
             message: "Categoría creada correctamente",
             data: newCategory,
@@ -167,7 +167,7 @@ export const updateCategory = async (req: DAuthRequest, res: Response) => {
 
         broadcastToAll("updatedCategory", updateCategory);
 
-        res.status(200).json({
+        return res.status(200).json({
             status: 200,
             message: "Categoría actualizada correctamente",
             data: updatedCategory,
@@ -224,7 +224,9 @@ export const addSubCategory = async (req: DAuthRequest, res: Response) => {
         category.subCategories.push(subCategoryName);
         await category.save();
 
-        res.status(200).json({
+        broadcastToAll("updatedCategory", category);
+
+        return res.status(200).json({
             status: 200,
             message: "Subcategoría agregada correctamente",
             data: category,
@@ -286,7 +288,9 @@ export const removeSubCategory = async (req: DAuthRequest, res: Response) => {
         category.subCategories = category.subCategories.filter((sub) => sub !== subCategoryName);
         await category.save();
 
-        res.status(200).json({
+        broadcastToAll("updatedCategory", category);
+
+        return res.status(200).json({
             status: 200,
             message: "Subcategoría eliminada correctamente",
             data: category,
@@ -345,7 +349,7 @@ export const deleteCategory = async (req: DAuthRequest, res: Response) => {
 
         broadcastToAll("deletedCategory", category);
 
-        res.status(200).json({
+        return res.status(200).json({
             status: 200,
             message: "Categoría eliminada correctamente",
             data: { id: categoryId },

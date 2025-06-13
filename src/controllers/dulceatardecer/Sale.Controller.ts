@@ -4,6 +4,7 @@ import { DAuthRequest } from "../../middlewares/dulceatardecer/auth";
 import Product from "../../models/dulceatardecer/Product";
 import Extra from "../../models/dulceatardecer/Extras";
 import Sale, { SaleStatus } from "../../models/dulceatardecer/Sale";
+import { broadcastToAll } from "../../config/websockets";
 
 export const createSale = async (req: DAuthRequest, res: Response) => {
     try {
@@ -66,6 +67,8 @@ export const createSale = async (req: DAuthRequest, res: Response) => {
                 },
             })
             .populate("items.extras", "name price");
+
+        broadcastToAll("newSale", populatedSale);
 
         res.status(201).json({
             status: 201,
@@ -231,6 +234,8 @@ export const updateSaleStatus = async (req: DAuthRequest, res: Response) => {
 
         const updatedSale = await Sale.findById(saleId).populate("seller", "username").populate("statusUpdatedBy", "username").populate("items.extras", "name price");
 
+        broadcastToAll("updatedSale", updatedSale);
+
         res.status(200).json({
             status: 200,
             message: `Status de venta actualizado a ${status}`,
@@ -338,7 +343,9 @@ export const updateSale = async (req: DAuthRequest, res: Response) => {
             })
             .populate("items.extras", "name price");
 
-        res.status(200).json({
+        broadcastToAll("updatedSale", updatedSale);
+
+        return res.status(200).json({
             status: 200,
             message: "Venta actualizada correctamente",
             data: updatedSale,

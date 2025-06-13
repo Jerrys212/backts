@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { DAuthRequest } from "../../middlewares/dulceatardecer/auth";
 import Product from "../../models/dulceatardecer/Product";
 import Category from "../../models/dulceatardecer/Category";
+import { broadcastToAll } from "../../config/websockets";
 
 // Obtener todos los productos
 export const getAllProducts = async (req: DAuthRequest, res: Response) => {
@@ -166,7 +167,9 @@ export const createProduct = async (req: DAuthRequest, res: Response) => {
         // Poblar la categoría para la respuesta
         const populatedProduct = await Product.findById(newProduct._id).populate("category", "name");
 
-        res.status(201).json({
+        broadcastToAll("updateProduct", populatedProduct);
+
+        return res.status(201).json({
             status: 201,
             message: "Producto creado correctamente",
             data: populatedProduct,
@@ -260,7 +263,9 @@ export const updateProduct = async (req: DAuthRequest, res: Response) => {
             { new: true }
         ).populate("category", "name");
 
-        res.status(200).json({
+        broadcastToAll("updateProduct", updatedProduct);
+
+        return res.status(200).json({
             status: 200,
             message: "Producto actualizado correctamente",
             data: updatedProduct,
@@ -307,7 +312,9 @@ export const deleteProduct = async (req: DAuthRequest, res: Response) => {
         // Desactivar el producto en lugar de eliminarlo
         await Product.findByIdAndUpdate(productId, { isActive: false });
 
-        res.status(200).json({
+        broadcastToAll("deletedProduct", product);
+
+        return res.status(200).json({
             status: 200,
             message: "Producto eliminado correctamente",
             data: { id: productId },
